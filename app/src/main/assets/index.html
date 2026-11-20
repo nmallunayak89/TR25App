@@ -2,45 +2,70 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#b3001b">
 <title>TR-25 Bill Generator</title>
 <style>
 :root{--red:#b3001b;--ink:#1d1d1f;--mute:#6b6b70;--line:#e3e3e8;--bg:#f6f5f2;--card:#fff;--ok:#1f7a3a}
 *{box-sizing:border-box}
 body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);font-size:15px}
-header{background:var(--red);color:#fff;padding:14px 16px;position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:8px}
-header h1{font-size:17px;margin:0;letter-spacing:.3px}
+header{background:var(--red);color:#fff;padding:12px 16px;position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:8px}
+header h1{font-size:17px;margin:0}
 header small{display:block;font-weight:400;opacity:.85;font-size:12px}
-main{max-width:760px;margin:0 auto;padding:12px 12px 120px}
+main{max-width:760px;margin:0 auto;padding:10px 12px 110px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin:12px 0}
-.card h2{font-size:14px;margin:0 0 10px;color:var(--red);text-transform:uppercase;letter-spacing:.6px}
+.card h2{font-size:14px;margin:0 0 10px;color:var(--red);text-transform:uppercase;letter-spacing:.5px}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .grid .full{grid-column:1/-1}
 label{display:block;font-size:12px;color:var(--mute);margin-bottom:3px}
-input,select,textarea{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;font:inherit;background:#fff;color:var(--ink)}
+input,select,textarea{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:16px;background:#fff;color:var(--ink)}
 input:focus,select:focus,textarea:focus{outline:2px solid #f2b8c0;border-color:var(--red)}
-.leg{border:1px dashed #d4d4da;border-radius:10px;padding:10px;margin:10px 0;position:relative}
-.leg .no{font-weight:700;font-size:13px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
-button{font:inherit;border:0;border-radius:8px;padding:10px 14px;cursor:pointer}
+button{font:inherit;border:0;border-radius:8px;padding:11px 14px;cursor:pointer;min-height:44px}
 .btn{background:var(--red);color:#fff;font-weight:600}
 .btn2{background:#fff;color:var(--red);border:1px solid var(--red)}
-.btnx{background:#f1f1f4;color:#555;padding:6px 10px;font-size:13px}
+.btnx{background:#f1f1f4;color:#444}
 .row{display:flex;gap:8px;flex-wrap:wrap}
+.row>button{flex:1 1 auto}
+.note{font-size:12px;color:var(--mute);margin-top:6px}
+.err{color:var(--red);font-size:13px;min-height:18px;margin-top:6px}
+.hide{display:none!important}
+/* login */
+#login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:var(--red)}
+#login .card{width:100%;max-width:380px}
+#login h1{color:var(--red);margin:0 0 4px;font-size:22px}
+.pin{letter-spacing:10px;text-align:center;font-size:24px}
+/* month bar */
+.mbar{display:flex;align-items:center;gap:8px}
+.mbar input{flex:1;text-align:center;font-weight:600}
+.mbar button{min-width:48px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.stat{background:#faf7f7;border-radius:8px;padding:8px;text-align:center}
+.stat b{display:block;font-size:18px}
+.stat span{font-size:11px;color:var(--mute)}
+/* diary */
+.day{margin:14px 0 4px;font-weight:700;font-size:13px;color:var(--mute)}
+.ent{background:#fff;border:1px solid var(--line);border-left:4px solid var(--red);border-radius:8px;padding:10px;margin:6px 0;cursor:pointer}
+.ent .t{font-weight:600}
+.ent .s{font-size:13px;color:var(--mute);margin-top:2px}
+.ent .rm{font-size:13px;margin-top:4px;background:#fff8e6;padding:4px 6px;border-radius:6px}
+.empty{text-align:center;color:var(--mute);padding:24px 8px}
 .sum{width:100%;border-collapse:collapse}
 .sum td{padding:6px 2px;border-bottom:1px solid var(--line)}
-.sum td:last-child{text-align:right;font-variant-numeric:tabular-nums}
+.sum td:last-child{text-align:right;white-space:nowrap}
 .sum tr.tot td{font-weight:700;border-top:2px solid var(--ink)}
-.note{font-size:12px;color:var(--mute);margin-top:6px}
-.bar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px;justify-content:center;z-index:6}
-.bar button{flex:1;max-width:240px}
-.chip{font-size:12px;background:#fff3;padding:4px 8px;border-radius:20px}
+/* bottom nav */
+nav{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);display:flex;z-index:6}
+nav button{flex:1;background:none;border-radius:0;color:var(--mute);font-size:13px;padding:8px 4px 12px}
+nav button b{display:block;font-size:20px;line-height:1.2}
+nav button.on{color:var(--red);font-weight:700}
+.fab{position:fixed;right:16px;bottom:78px;width:56px;height:56px;border-radius:50%;font-size:28px;box-shadow:0 3px 10px #0003;z-index:7;padding:0}
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:20px;font-size:14px;z-index:20;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.on{opacity:1}
 #print{display:none}
-/* ---------- PRINT ---------- */
 @media print{
   @page{size:A4;margin:12mm}
   body{background:#fff;font-family:"Times New Roman",serif;font-size:11pt}
-  header,main,.bar{display:none!important}
+  #login,#app{display:none!important}
   #print{display:block}
 }
 #print h3{text-align:center;margin:2px 0;font-size:13pt}
@@ -49,296 +74,442 @@ button{font:inherit;border:0;border-radius:8px;padding:10px 14px;cursor:pointer}
 #print .r{text-align:right}
 #print table{width:100%;border-collapse:collapse;margin:6px 0}
 #print th,#print td{border:1px solid #000;padding:3px 4px;font-size:9.5pt;vertical-align:top}
-#print th{font-weight:700;text-align:center}
-#print .kv td{border:none;padding:2px 4px;font-size:10.5pt}
+#print .kv td,#print .nb td{border:none;padding:2px 4px;font-size:10.5pt}
 #print .cert{font-size:10pt;margin:4px 0}
-#print .sig{display:flex;justify-content:space-between;margin-top:28px;font-size:10.5pt}
-#print .pb{page-break-before:always}
 </style>
 </head>
 <body>
+
+<!-- ============ LOGIN ============ -->
+<div id="login">
+  <div class="card">
+    <h1>TR-25 Bill Generator</h1>
+    <div class="note" style="margin:0 0 14px">TA Bill for Tour · works fully offline</div>
+    <div id="setup" class="hide">
+      <div class="grid">
+        <div class="full"><label>Your name</label><input id="su_name" autocomplete="off"></div>
+        <div><label>Create 4-digit PIN</label><input id="su_pin" class="pin" type="password" inputmode="numeric" maxlength="4"></div>
+        <div><label>Confirm PIN</label><input id="su_pin2" class="pin" type="password" inputmode="numeric" maxlength="4"></div>
+        <div class="full"><label>Recovery word (to reset a forgotten PIN)</label><input id="su_rec" autocomplete="off" placeholder="e.g. your birthplace"></div>
+      </div>
+      <button class="btn" style="width:100%;margin-top:12px" onclick="doSetup()">Create login</button>
+    </div>
+    <div id="unlock" class="hide">
+      <div style="font-weight:600;margin-bottom:8px">Welcome, <span id="lg_name"></span></div>
+      <label>Enter PIN</label>
+      <input id="lg_pin" class="pin" type="password" inputmode="numeric" maxlength="4" oninput="if(this.value.length===4)doLogin()">
+      <button class="btn" style="width:100%;margin-top:12px" onclick="doLogin()">Login</button>
+      <button class="btnx" style="width:100%;margin-top:8px" onclick="forgot()">Forgot PIN</button>
+    </div>
+    <div id="reset" class="hide">
+      <label>Recovery word</label><input id="rs_rec" autocomplete="off">
+      <label style="margin-top:8px">New 4-digit PIN</label><input id="rs_pin" class="pin" type="password" inputmode="numeric" maxlength="4">
+      <button class="btn" style="width:100%;margin-top:12px" onclick="doReset()">Set new PIN</button>
+      <button class="btnx" style="width:100%;margin-top:8px" onclick="showLogin()">Back</button>
+    </div>
+    <div class="err" id="lg_err"></div>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app" class="hide">
 <header>
-  <div><h1>TR-25 BILL GENERATOR<small>T.R. 25-A / G.A.R. 14-A · TA Bill for Tour</small></h1></div>
-  <span class="chip" id="saved">Offline</span>
+  <h1>TR-25 BILL GENERATOR<small id="hdrsub">T.R. 25-A / G.A.R. 14-A</small></h1>
+  <button class="btnx" style="min-height:36px;padding:6px 10px" onclick="lock()">Lock</button>
 </header>
-
 <main>
-  <section class="card">
-    <h2>Officer details</h2>
-    <div class="grid">
-      <div class="full"><label>Name</label><input id="name" placeholder="e.g. Mallikarjuna"></div>
-      <div><label>Designation</label><input id="desig" placeholder="Inspector Posts"></div>
-      <div><label>Pay Level</label><input id="level" placeholder="Level 7"></div>
-      <div><label>Basic Pay (₹)</label><input id="pay" type="number" inputmode="numeric"></div>
-      <div><label>Headquarters</label><input id="hq" placeholder="Gauribidanur"></div>
-      <div class="full"><label>Office / Sub-Division / Division</label><input id="office" placeholder="Gauribidanur Sub-Division, Kolar Division"></div>
-      <div><label>Daily Allowance rate (₹ per day, 100%)</label><input id="darate" type="number" inputmode="decimal"></div>
-      <div><label>RMA rate for own bike (₹/km)</label><input id="rma" type="number" inputmode="decimal" value="15"></div>
-      <div><label>RMA max km per day</label><input id="rmacap" type="number" inputmode="numeric" value="200"></div>
-      <div><label>Bill for the month of</label><input id="month" type="month"></div>
+  <div class="card" style="padding:10px">
+    <div class="mbar">
+      <button class="btnx" onclick="shiftMonth(-1)">‹</button>
+      <input type="month" id="month" onchange="setMonth(this.value)">
+      <button class="btnx" onclick="shiftMonth(1)">›</button>
     </div>
-    <p class="note">Officer details are remembered on this device.</p>
-  </section>
+    <div class="stats" id="stats"></div>
+  </div>
 
-  <section class="card">
-    <h2>Journeys</h2>
-    <div id="legs"></div>
-    <div class="row">
-      <button class="btn2" onclick="addLeg()">+ Add journey</button>
-      <button class="btn2" onclick="addReturn()">+ Add return of last journey</button>
+  <!-- DIARY -->
+  <section id="tab_diary">
+    <div class="card hide" id="form">
+      <h2 id="f_title">Add tour entry</h2>
+      <div class="grid">
+        <div><label>From (station)</label><input id="f_fs"></div>
+        <div><label>To (station)</label><input id="f_ts"></div>
+        <div><label>Departure date</label><input type="date" id="f_fd"></div>
+        <div><label>Departure time</label><input type="time" id="f_ft"></div>
+        <div><label>Arrival date</label><input type="date" id="f_td"></div>
+        <div><label>Arrival time</label><input type="time" id="f_tt"></div>
+        <div><label>Mode of travel</label><select id="f_mode"></select></div>
+        <div><label>Class</label><input id="f_cls" value="Ordinary"></div>
+        <div><label>Fare paid (₹)</label><input type="number" inputmode="decimal" id="f_fare"></div>
+        <div><label>Distance (km)</label><input type="number" inputmode="decimal" id="f_km"></div>
+        <div class="full"><label>Purpose / work done</label><input id="f_purp" placeholder="e.g. Annual inspection of Kolar HO"></div>
+        <div class="full"><label>Remarks</label><textarea id="f_rem" rows="2" placeholder="e.g. Stayed at IB; BO visit; night halt"></textarea></div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn" onclick="saveEntry()">Save</button>
+        <button class="btnx" onclick="closeForm()">Cancel</button>
+        <button class="btn2 hide" id="f_del" onclick="delEntry()">Delete</button>
+      </div>
+      <div class="err" id="f_err"></div>
     </div>
-    <p class="note">Departure from HQ starts the absence; arrival back at HQ ends it. DA is worked out per calendar day: under 6 h = 30%, 6–12 h = 70%, above 12 h = 100%.</p>
+    <div class="row" id="quick">
+      <button class="btn2" onclick="openForm()">+ New journey</button>
+      <button class="btn2" onclick="openReturn()">+ Return of last</button>
+    </div>
+    <div id="diary"></div>
   </section>
 
-  <section class="card">
-    <h2>Advance &amp; others</h2>
-    <div class="grid">
-      <div><label>TA advance drawn (₹)</label><input id="adv" type="number" inputmode="decimal" value="0"></div>
-      <div><label>Other admissible charges (₹)</label><input id="oth" type="number" inputmode="decimal" value="0"></div>
-      <div class="full"><label>Details of other charges</label><input id="othd" placeholder="e.g. Local conveyance at Kolar"></div>
-      <div class="full"><label>Purpose of tour (overall)</label><input id="purpose" placeholder="Inspection of POs / BOs"></div>
+  <!-- BILL -->
+  <section id="tab_bill" class="hide">
+    <div class="card">
+      <h2>Bill details for this month</h2>
+      <div class="grid">
+        <div><label>TA advance drawn (₹)</label><input id="b_adv" type="number" inputmode="decimal"></div>
+        <div><label>Other charges (₹)</label><input id="b_oth" type="number" inputmode="decimal"></div>
+        <div class="full"><label>Details of other charges</label><input id="b_othd"></div>
+        <div class="full"><label>Purpose of tour (overall)</label><input id="b_purpose" placeholder="Inspection of POs / BOs"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Part B – Calculation</h2>
+      <table class="sum" id="sum"></table>
+      <div id="dadetail" class="note"></div>
+    </div>
+    <div class="card">
+      <h2>Export</h2>
+      <div class="row">
+        <button class="btn" onclick="doPrint()">Print / Save PDF</button>
+        <button class="btn2" onclick="exportWord()">Word (.doc)</button>
+        <button class="btn2" onclick="exportCSV()">Excel (.csv)</button>
+      </div>
+      <p class="note">The Word file opens in MS Word or WPS Office and can be edited. In the print screen, choose "Save as PDF".</p>
     </div>
   </section>
 
-  <section class="card">
-    <h2>Part B – Calculation</h2>
-    <table class="sum" id="sum"></table>
-    <div id="dadetail" class="note"></div>
-  </section>
-
-  <section class="card">
-    <h2>Data</h2>
-    <div class="row">
-      <button class="btnx" onclick="newBill()">New bill (keep officer)</button>
-      <button class="btnx" onclick="exportJSON()">Backup bill</button>
-      <button class="btnx" onclick="document.getElementById('imp').click()">Restore bill</button>
-      <input type="file" id="imp" accept=".json,application/json" style="display:none" onchange="importJSON(this)">
+  <!-- SETTINGS -->
+  <section id="tab_set" class="hide">
+    <div class="card">
+      <h2>Officer details</h2>
+      <div class="grid">
+        <div class="full"><label>Name</label><input id="p_name"></div>
+        <div><label>Designation</label><input id="p_desig" placeholder="Inspector Posts"></div>
+        <div><label>Pay Level</label><input id="p_level" placeholder="Level 7"></div>
+        <div><label>Basic Pay (₹)</label><input id="p_pay" type="number" inputmode="numeric"></div>
+        <div><label>Headquarters</label><input id="p_hq" placeholder="Gauribidanur"></div>
+        <div class="full"><label>Office / Sub-Division / Division</label><input id="p_office"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Rates</h2>
+      <div class="grid">
+        <div class="full"><label>Daily Allowance rate (₹ per day, 100%)</label><input id="p_darate" type="number" inputmode="decimal"></div>
+        <div><label>RMA own bike (₹/km)</label><input id="p_rma" type="number" inputmode="decimal"></div>
+        <div><label>RMA max km per day</label><input id="p_rmacap" type="number" inputmode="numeric"></div>
+      </div>
+      <p class="note">DA per calendar day of absence from HQ: under 6 h = 30%, 6–12 h = 70%, above 12 h = 100%.</p>
+    </div>
+    <div class="card">
+      <h2>Data &amp; security</h2>
+      <div class="row">
+        <button class="btn2" onclick="backup()">Backup all data</button>
+        <button class="btn2" onclick="document.getElementById('imp').click()">Restore backup</button>
+      </div>
+      <input type="file" id="imp" accept=".json,application/json,text/plain,*/*" class="hide" onchange="restore(this)">
+      <div class="grid" style="margin-top:12px">
+        <div><label>New PIN</label><input id="cp_pin" class="pin" type="password" inputmode="numeric" maxlength="4"></div>
+        <div style="display:flex;align-items:end"><button class="btnx" style="width:100%" onclick="changePin()">Change PIN</button></div>
+      </div>
+      <p class="note">All data stays on this phone. Take a backup every month and keep it in Google Drive or WhatsApp to yourself.</p>
     </div>
   </section>
 </main>
 
-<div class="bar">
-  <button class="btn" onclick="doPrint()">Print / Save PDF</button>
+<button class="btn fab" id="fab" onclick="openForm()">+</button>
+<nav>
+  <button id="n_diary" class="on" onclick="tab('diary')"><b>☰</b>Tour diary</button>
+  <button id="n_bill" onclick="tab('bill')"><b>₹</b>Bill</button>
+  <button id="n_set" onclick="tab('set')"><b>⚙</b>Settings</button>
+</nav>
 </div>
 
+<div class="toast" id="toast"></div>
 <div id="print"></div>
 
 <script>
+{
 const $=id=>document.getElementById(id);
-const OF=['name','desig','level','pay','hq','office','darate','rma','rmacap'];
-const BF=['month','adv','oth','othd','purpose'];
-const MODES=['Bus','Train','Own Bike (RMA)','Auto / Taxi','Departmental vehicle','Other'];
-let legs=[];
+const KEY='tr25_v2';
+const MODES=['Bus','Train','Own Bike (RMA)','Auto / Taxi','Departmental vehicle','On foot','Other'];
+let S=null, cur='', editId=null;
 
-function store(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
-function load(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}}
-
-function blankLeg(){return {fs:'',fd:'',ft:'',ts:'',td:'',tt:'',mode:'Bus',cls:'Ordinary',fare:'',km:'',purp:''}}
-
-function renderLegs(){
-  const box=$('legs');box.innerHTML='';
-  legs.forEach((l,i)=>{
-    const d=document.createElement('div');d.className='leg';
-    d.innerHTML=`<div class="no">Journey ${i+1}<button class="btnx" onclick="delLeg(${i})">Remove</button></div>
-    <div class="grid">
-      <div><label>From (station)</label><input data-k="fs" value="${esc(l.fs)}"></div>
-      <div><label>To (station)</label><input data-k="ts" value="${esc(l.ts)}"></div>
-      <div><label>Departure date</label><input type="date" data-k="fd" value="${l.fd}"></div>
-      <div><label>Departure time</label><input type="time" data-k="ft" value="${l.ft}"></div>
-      <div><label>Arrival date</label><input type="date" data-k="td" value="${l.td}"></div>
-      <div><label>Arrival time</label><input type="time" data-k="tt" value="${l.tt}"></div>
-      <div><label>Mode</label><select data-k="mode">${MODES.map(m=>`<option ${m==l.mode?'selected':''}>${m}</option>`).join('')}</select></div>
-      <div><label>Class</label><input data-k="cls" value="${esc(l.cls)}"></div>
-      <div><label>Fare paid (₹)</label><input type="number" inputmode="decimal" data-k="fare" value="${l.fare}"></div>
-      <div><label>Distance km (road)</label><input type="number" inputmode="decimal" data-k="km" value="${l.km}"></div>
-      <div class="full"><label>Purpose / nature of halt</label><input data-k="purp" value="${esc(l.purp)}"></div>
-    </div>`;
-    d.querySelectorAll('[data-k]').forEach(inp=>{
-      inp.addEventListener('input',()=>{legs[i][inp.dataset.k]=inp.value;
-        if(inp.dataset.k==='fd'&&!legs[i].td){legs[i].td=inp.value;d.querySelector('[data-k=td]').value=inp.value}
-        save()});
-      inp.addEventListener('change',()=>{legs[i][inp.dataset.k]=inp.value;save()});
-    });
-    box.appendChild(d);
-  });
+/* ---------- storage ---------- */
+function loadS(){try{return JSON.parse(localStorage.getItem(KEY))}catch(e){return null}}
+function persist(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast('Could not save!')}}
+function blank(){return {user:null,profile:{name:'',desig:'Inspector Posts',level:'',pay:'',hq:'',office:'',darate:'',rma:'15',rmacap:'200'},months:{}}}
+function migrateV1(){ // bring over data from the first version
+  try{const o=JSON.parse(localStorage.getItem('tr25_officer')),b=JSON.parse(localStorage.getItem('tr25_bill'));
+    if(o)Object.keys(S.profile).forEach(k=>{if(o[k])S.profile[k]=o[k]});
+    if(b&&b.legs&&b.legs.length){const m=b.month||b.legs[0].fd.slice(0,7);const M=mon(m);
+      M.adv=b.adv||'';M.oth=b.oth||'';M.othd=b.othd||'';M.purpose=b.purpose||'';
+      b.legs.forEach(l=>M.entries.push(Object.assign({id:uid(),rem:''},l)))}
+    localStorage.removeItem('tr25_bill');
+  }catch(e){}
 }
-function esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')}
-function addLeg(){const p=legs[legs.length-1];const n=blankLeg();
-  if(p){n.fs=p.ts;n.fd=p.td;n.mode=p.mode;n.cls=p.cls}else{n.fs=$('hq').value}
-  legs.push(n);renderLegs();save()}
-function addReturn(){const p=legs[legs.length-1];if(!p)return addLeg();
-  const n=blankLeg();Object.assign(n,{fs:p.ts,ts:p.fs,fd:p.td,td:p.td,mode:p.mode,cls:p.cls,fare:p.fare,km:p.km,purp:'Return to HQ'});
-  legs.push(n);renderLegs();save()}
-function delLeg(i){if(confirmDel()){legs.splice(i,1);renderLegs();save()}}
-function confirmDel(){return true}
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+function mon(m){if(!S.months[m])S.months[m]={entries:[],adv:'',oth:'',othd:'',purpose:''};return S.months[m]}
 
+/* ---------- login ---------- */
+function h(s){let a=5381,b=52711;s='tr25::'+s;for(let i=0;i<s.length;i++){const c=s.charCodeAt(i);a=(a*33)^c;b=(b*31)^c}return (a>>>0).toString(16)+(b>>>0).toString(16)}
+function showLogin(){
+  $('login').classList.remove('hide');$('app').classList.add('hide');$('lg_err').textContent='';
+  ['setup','unlock','reset'].forEach(x=>$(x).classList.add('hide'));
+  if(!S.user){$('setup').classList.remove('hide');$('su_name').value=S.profile.name||''}
+  else{$('unlock').classList.remove('hide');$('lg_name').textContent=S.user.name;$('lg_pin').value='';setTimeout(()=>$('lg_pin').focus(),100)}
+}
+window.doSetup=()=>{
+  const n=$('su_name').value.trim(),p=$('su_pin').value,p2=$('su_pin2').value,r=$('su_rec').value.trim().toLowerCase();
+  if(!n)return lerr('Enter your name');
+  if(!/^\d{4}$/.test(p))return lerr('PIN must be 4 digits');
+  if(p!==p2)return lerr('PINs do not match');
+  if(r.length<3)return lerr('Recovery word: at least 3 letters');
+  S.user={name:n,pin:h(p),rec:h(r)};if(!S.profile.name)S.profile.name=n;persist();enter();
+};
+window.doLogin=()=>{if(h($('lg_pin').value)===S.user.pin)enter();else{lerr('Wrong PIN');$('lg_pin').value=''}};
+window.forgot=()=>{['setup','unlock'].forEach(x=>$(x).classList.add('hide'));$('reset').classList.remove('hide');$('lg_err').textContent=''};
+window.doReset=()=>{
+  if(h($('rs_rec').value.trim().toLowerCase())!==S.user.rec)return lerr('Recovery word does not match');
+  if(!/^\d{4}$/.test($('rs_pin').value))return lerr('PIN must be 4 digits');
+  S.user.pin=h($('rs_pin').value);persist();toast('PIN changed');enter();
+};
+window.changePin=()=>{const p=$('cp_pin').value;if(!/^\d{4}$/.test(p))return toast('PIN must be 4 digits');S.user.pin=h(p);persist();$('cp_pin').value='';toast('PIN changed')};
+window.lock=()=>{closeForm();showLogin()};
+function lerr(t){$('lg_err').textContent=t}
+function enter(){$('login').classList.add('hide');$('app').classList.remove('hide');fillProfile();setMonth(cur||new Date().toISOString().slice(0,7))}
+
+/* ---------- navigation ---------- */
+window.tab=t=>{['diary','bill','set'].forEach(x=>{$('tab_'+x).classList.toggle('hide',x!==t);$('n_'+x).classList.toggle('on',x===t)});
+  $('fab').classList.toggle('hide',t!=='diary');if(t!=='diary')closeForm();window.scrollTo(0,0)};
+window.setMonth=m=>{if(!m)return;cur=m;$('month').value=m;fillBill();renderAll()};
+window.shiftMonth=d=>{const [y,m]=cur.split('-').map(Number);const x=new Date(y,m-1+d,1);setMonth(`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}`)};
+
+/* ---------- profile & bill fields ---------- */
+const PF=['name','desig','level','pay','hq','office','darate','rma','rmacap'];
+const BF=['adv','oth','othd','purpose'];
+function fillProfile(){PF.forEach(k=>$('p_'+k).value=S.profile[k]||'')}
+function fillBill(){const M=S.months[cur]||{};BF.forEach(k=>$('b_'+k).value=M[k]||'')}
+PF.forEach(k=>$('p_'+k).addEventListener('input',e=>{S.profile[k]=e.target.value;persist();renderAll()}));
+BF.forEach(k=>$('b_'+k).addEventListener('input',e=>{mon(cur)[k]=e.target.value;persist();renderAll()}));
+
+/* ---------- entries ---------- */
+$('f_mode').innerHTML=MODES.map(m=>`<option>${m}</option>`).join('');
+const FF=['fs','ts','fd','ft','td','tt','mode','cls','fare','km','purp','rem'];
+function entries(m=cur){return ((S.months[m]||{}).entries||[]).slice().sort((a,b)=>(a.fd+a.ft).localeCompare(b.fd+b.ft))}
+window.openForm=(e)=>{
+  editId=e?e.id:null;$('f_title').textContent=e?'Edit tour entry':'Add tour entry';
+  $('f_del').classList.toggle('hide',!e);$('f_err').textContent='';
+  const last=entries().slice(-1)[0];
+  const d=e||{fs:last?last.ts:S.profile.hq,ts:'',fd:defDate(),ft:'',td:'',tt:'',mode:last?last.mode:'Bus',cls:last?last.cls:'Ordinary',fare:'',km:'',purp:'',rem:''};
+  FF.forEach(k=>$('f_'+k).value=d[k]||'');if(!e)$('f_td').value=d.fd;
+  $('form').classList.remove('hide');$('quick').classList.add('hide');$('fab').classList.add('hide');
+  window.scrollTo(0,0);
+};
+window.openReturn=()=>{const l=entries().slice(-1)[0];if(!l)return openForm();
+  openForm();Object.entries({fs:l.ts,ts:l.fs,fd:l.td,td:l.td,mode:l.mode,cls:l.cls,fare:l.fare,km:l.km,purp:'Return to HQ'}).forEach(([k,v])=>$('f_'+k).value=v||'')};
+function defDate(){const t=new Date().toISOString().slice(0,10);return t.slice(0,7)===cur?t:cur+'-01'}
+window.closeForm=()=>{$('form').classList.add('hide');$('quick').classList.remove('hide');if(!$('tab_diary').classList.contains('hide'))$('fab').classList.remove('hide');editId=null};
+$('f_fd').addEventListener('change',()=>{if(!$('f_td').value||$('f_td').value<$('f_fd').value)$('f_td').value=$('f_fd').value});
+window.saveEntry=()=>{
+  const d={};FF.forEach(k=>d[k]=$('f_'+k).value.trim());
+  if(!d.fs||!d.ts)return $('f_err').textContent='Enter From and To stations';
+  if(!d.fd)return $('f_err').textContent='Enter departure date';
+  if(!d.td)d.td=d.fd;
+  if(new Date(d.td+'T'+(d.tt||'00:00'))<new Date(d.fd+'T'+(d.ft||'00:00')))return $('f_err').textContent='Arrival is before departure';
+  const m=d.fd.slice(0,7);
+  if(editId){Object.values(S.months).forEach(M=>M.entries=M.entries.filter(x=>x.id!==editId))}
+  mon(m).entries.push(Object.assign({id:editId||uid()},d));persist();
+  closeForm();if(m!==cur){setMonth(m);toast('Saved in '+mname(m))}else{renderAll();toast('Saved')}
+};
+window.delEntry=()=>{if(!confirm('Delete this entry?'))return;
+  Object.values(S.months).forEach(M=>M.entries=M.entries.filter(x=>x.id!==editId));persist();closeForm();renderAll();toast('Deleted')};
+
+/* ---------- helpers ---------- */
+const esc=s=>String(s??'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
 const num=v=>{const n=parseFloat(v);return isNaN(n)?0:n};
 const dt=(d,t)=>d?new Date(d+'T'+(t||'00:00')):null;
-const same=(a,b)=>a.trim().toLowerCase()===b.trim().toLowerCase()&&a.trim()!=='';
+const same=(a,b)=>!!a&&!!b&&a.trim().toLowerCase()===b.trim().toLowerCase();
 const fmtD=d=>d?d.split('-').reverse().join('-'):'';
 const rs=n=>'₹ '+n.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+const mname=m=>m?new Date(m+'-01T00:00').toLocaleString('en-IN',{month:'long',year:'numeric'}):'';
+const isBike=l=>l.mode.startsWith('Own Bike');
+const dkey=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+function toast(t){const x=$('toast');x.textContent=t;x.classList.add('on');clearTimeout(x._t);x._t=setTimeout(()=>x.classList.remove('on'),2200)}
 
-/* absence periods from HQ */
-function absences(){
-  const hq=$('hq').value; const out=[]; let start=null;
-  legs.forEach(l=>{
-    const dep=dt(l.fd,l.ft), arr=dt(l.td,l.tt);
-    if(!dep||!arr)return;
-    if(start===null && (same(l.fs,hq)||!hq.trim()))start=dep;
+/* ---------- calculation ---------- */
+function absences(L){
+  const hq=S.profile.hq;const out=[];let start=null;
+  L.forEach(l=>{const dep=dt(l.fd,l.ft),arr=dt(l.td,l.tt);if(!dep||!arr)return;
     if(start===null)start=dep;
-    if(same(l.ts,hq)){out.push([start,arr]);start=null}
-  });
-  if(start!==null){const last=legs.filter(l=>l.td).slice(-1)[0];
-    if(last){const e=dt(last.td,last.tt);if(e>start)out.push([start,e])}}
+    if(same(l.ts,hq)){out.push([start,arr]);start=null}});
+  if(start!==null){const l=L[L.length-1];const e=dt(l.td,l.tt);if(e>start)out.push([start,e])}
   return out;
 }
-/* per-calendar-day DA */
-function daCalc(){
-  const rate=num($('darate').value); const days=[];
-  absences().forEach(([s,e])=>{
-    let cur=new Date(s);
-    while(cur<e){
-      const mid=new Date(cur);mid.setHours(24,0,0,0);
-      const end=e<mid?e:mid; const h=(end-cur)/36e5;
-      const pct=h>12?100:h>=6?70:30;
-      const key=cur.toISOString().slice(0,10);
-      const dkey=`${cur.getFullYear()}-${String(cur.getMonth()+1).padStart(2,'0')}-${String(cur.getDate()).padStart(2,'0')}`;
-      const ex=days.find(x=>x.d===dkey);
-      if(ex){ex.h+=h;ex.pct=ex.h>12?100:ex.h>=6?70:30}
-      else days.push({d:dkey,h,pct});
-      cur=end;
-    }
-  });
-  days.forEach(x=>x.amt=Math.round(rate*x.pct)/100);
+function daCalc(L){
+  const rate=num(S.profile.darate);const days=[];
+  absences(L).forEach(([s,e])=>{let c=new Date(s);
+    while(c<e){const mid=new Date(c);mid.setHours(24,0,0,0);const end=e<mid?e:mid;const hrs=(end-c)/36e5;const k=dkey(c);
+      const ex=days.find(x=>x.d===k);if(ex)ex.h+=hrs;else days.push({d:k,h:hrs});c=end}});
+  days.forEach(x=>{x.pct=x.h>12?100:x.h>=6?70:30;x.amt=Math.round(rate*x.pct)/100});
   return days;
 }
-function rmaCalc(){
-  const rate=num($('rma').value), cap=num($('rmacap').value)||Infinity; const byDay={};
-  legs.forEach(l=>{if(l.mode.startsWith('Own Bike')){byDay[l.fd]=(byDay[l.fd]||0)+num(l.km)}});
-  let km=0,capped=false;
-  Object.values(byDay).forEach(k=>{if(k>cap)capped=true;km+=Math.min(k,cap)});
-  return {km,amt:Math.round(km*rate*100)/100,capped};
+function totals(m=cur){
+  const L=entries(m),M=S.months[m]||{};
+  const fare=L.filter(l=>!isBike(l)).reduce((a,l)=>a+num(l.fare),0);
+  const rate=num(S.profile.rma),cap=num(S.profile.rmacap)||Infinity,byDay={};
+  L.filter(isBike).forEach(l=>byDay[l.fd]=(byDay[l.fd]||0)+num(l.km));
+  let km=0,capped=false;Object.values(byDay).forEach(k=>{if(k>cap)capped=true;km+=Math.min(k,cap)});
+  const rma=Math.round(km*rate*100)/100;
+  const da=daCalc(L),daAmt=da.reduce((a,x)=>a+x.amt,0),oth=num(M.oth),adv=num(M.adv);
+  const gross=Math.round((fare+rma+daAmt+oth)*100)/100;
+  return {L,M,fare,km,rma,capped,da,daAmt,oth,adv,gross,net:Math.round((gross-adv)*100)/100};
 }
-function totals(){
-  const fare=legs.filter(l=>!l.mode.startsWith('Own Bike')).reduce((a,l)=>a+num(l.fare),0);
-  const r=rmaCalc(); const da=daCalc(); const daAmt=da.reduce((a,x)=>a+x.amt,0);
-  const oth=num($('oth').value); const gross=Math.round((fare+r.amt+daAmt+oth)*100)/100;
-  const adv=num($('adv').value);
-  return {fare,r,da,daAmt,oth,gross,adv,net:Math.round((gross-adv)*100)/100};
-}
-function renderSum(){
+
+/* ---------- render ---------- */
+function renderAll(){
   const t=totals();
+  $('hdrsub').textContent=mname(cur)+' · '+(S.profile.name||'');
+  $('stats').innerHTML=`<div class="stat"><b>${t.L.length}</b><span>journeys</span></div>
+    <div class="stat"><b>${t.da.length}</b><span>days on tour</span></div>
+    <div class="stat"><b>${Math.round(t.net).toLocaleString('en-IN')}</b><span>net claim ₹</span></div>`;
+  // diary grouped by date
+  if(!t.L.length){$('diary').innerHTML=`<div class="empty">No tour entries for ${mname(cur)}.<br>Tap <b>+</b> to add a journey.</div>`}
+  else{let html='',last='';
+    t.L.forEach(l=>{if(l.fd!==last){last=l.fd;const d=new Date(l.fd+'T00:00');
+        const da=t.da.find(x=>x.d===l.fd);
+        html+=`<div class="day">${d.toLocaleDateString('en-IN',{weekday:'short',day:'2-digit',month:'short'})}${da?` · DA ${da.pct}%`:''}</div>`}
+      const amt=isBike(l)?`${num(l.km)} km`:(l.fare?'₹'+num(l.fare):'');
+      html+=`<div class="ent" data-id="${l.id}"><div class="t">${esc(l.fs)} ${l.ft||''} → ${esc(l.ts)} ${l.tt||''}${l.td!==l.fd?' ('+fmtD(l.td)+')':''}</div>
+      <div class="s">${esc(l.mode)}${amt?' · '+amt:''}${l.purp?' · '+esc(l.purp):''}</div>${l.rem?`<div class="rm">Remarks: ${esc(l.rem)}</div>`:''}</div>`});
+    $('diary').innerHTML=html;
+    $('diary').querySelectorAll('.ent').forEach(el=>el.onclick=()=>openForm(t.L.find(x=>x.id===el.dataset.id)));
+  }
   $('sum').innerHTML=`
   <tr><td>1. Fare (bus / train / others – actuals)</td><td>${rs(t.fare)}</td></tr>
-  <tr><td>2. RMA own bike: ${t.r.km} km × ₹${num($('rma').value)}${t.r.capped?' (capped)':''}</td><td>${rs(t.r.amt)}</td></tr>
+  <tr><td>2. RMA own bike: ${t.km} km × ₹${num(S.profile.rma)}${t.capped?' (capped)':''}</td><td>${rs(t.rma)}</td></tr>
   <tr><td>3. Daily Allowance (${t.da.length} day${t.da.length==1?'':'s'})</td><td>${rs(t.daAmt)}</td></tr>
   <tr><td>4. Other charges</td><td>${rs(t.oth)}</td></tr>
   <tr class="tot"><td>Gross claim</td><td>${rs(t.gross)}</td></tr>
   <tr><td>Less: TA advance</td><td>${rs(t.adv)}</td></tr>
   <tr class="tot"><td>Net amount claimed</td><td>${rs(t.net)}</td></tr>`;
-  $('dadetail').textContent=t.da.length?'DA: '+t.da.map(x=>`${fmtD(x.d)} ${x.h.toFixed(1)}h→${x.pct}%`).join(' · '):(num($('darate').value)?'':'Enter the DA rate to calculate daily allowance.');
+  $('dadetail').textContent=num(S.profile.darate)?(t.da.length?'DA: '+t.da.map(x=>`${fmtD(x.d)} ${x.h.toFixed(1)}h→${x.pct}%`).join(' · '):''):'Set the DA rate in Settings to calculate daily allowance.';
 }
 
-/* amount in words – Indian system */
+/* ---------- amount in words ---------- */
 function words(n){
   const a=['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
   const b=['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
   const two=x=>x<20?a[x]:b[Math.floor(x/10)]+(x%10?' '+a[x%10]:'');
   const three=x=>(x>=100?a[Math.floor(x/100)]+' Hundred'+(x%100?' ':''):'')+(x%100?two(x%100):'');
-  let r=Math.floor(n),p=Math.round((n-r)*100),s='';
-  if(r===0)s='Zero';
+  let r=Math.floor(n),p=Math.round((n-r)*100),s='';if(r===0)s='Zero';
   const cr=Math.floor(r/1e7);r%=1e7;const lk=Math.floor(r/1e5);r%=1e5;const th=Math.floor(r/1e3);r%=1e3;
   if(cr)s+=three(cr)+' Crore ';if(lk)s+=two(lk)+' Lakh ';if(th)s+=two(th)+' Thousand ';if(r)s+=three(r);
   s='Rupees '+s.trim();if(p)s+=' and '+two(p)+' Paise';return s+' Only';
 }
 
-function buildPrint(){
-  const t=totals(), v=id=>esc($(id).value);
-  const m=$('month').value?new Date($('month').value+'-01').toLocaleString('en-IN',{month:'long',year:'numeric'}):'';
-  const rows=legs.map((l,i)=>{
-    const isBike=l.mode.startsWith('Own Bike');
-    return `<tr><td class="c">${i+1}</td><td>${esc(l.fs)}</td><td class="c">${fmtD(l.fd)}</td><td class="c">${l.ft}</td>
+/* ---------- bill document (print + Word) ---------- */
+function billHTML(){
+  const t=totals(),P=S.profile,M=t.M,v=x=>esc(x||'');
+  const rows=t.L.map((l,i)=>`<tr><td class="c">${i+1}</td><td>${esc(l.fs)}</td><td class="c">${fmtD(l.fd)}</td><td class="c">${l.ft}</td>
     <td>${esc(l.ts)}</td><td class="c">${fmtD(l.td)}</td><td class="c">${l.tt}</td><td>${esc(l.mode)}</td><td>${esc(l.cls)}</td>
-    <td class="r">${isBike?'—':num(l.fare).toFixed(2)}</td><td class="r">${l.km||''}</td><td>${esc(l.purp)}</td></tr>`}).join('');
+    <td class="r">${isBike(l)?'—':num(l.fare).toFixed(2)}</td><td class="r">${l.km||''}</td><td>${esc(l.purp)}</td><td>${esc(l.rem)}</td></tr>`).join('');
   const darows=t.da.map((x,i)=>`<tr><td class="c">${i+1}</td><td class="c">${fmtD(x.d)}</td><td class="c">${x.h.toFixed(1)}</td><td class="c">${x.pct}%</td><td class="r">${x.amt.toFixed(2)}</td></tr>`).join('')||'<tr><td colspan="5" class="c">Nil</td></tr>';
-  $('print').innerHTML=`
-  <div class="r" style="font-size:9pt">T.R. 25-A / G.A.R. 14-A</div>
+  return `
+  <p class="r" style="font-size:9pt;margin:0">T.R. 25-A / G.A.R. 14-A</p>
   <h3>DEPARTMENT OF POSTS, INDIA</h3>
   <h3>TRAVELLING ALLOWANCE BILL FOR TOUR</h3>
-  <div class="c" style="font-size:10pt">${m?'For the month of '+m:''}</div>
+  <p class="c" style="font-size:10pt;margin:0">For the month of ${mname(cur)}</p>
   <h3 style="margin-top:8px">PART A</h3>
   <table class="kv">
-   <tr><td style="width:38%">1. Name of the Officer</td><td>: ${v('name')}</td></tr>
-   <tr><td>2. Designation</td><td>: ${v('desig')}</td></tr>
-   <tr><td>3. Pay Level / Basic Pay</td><td>: ${v('level')}${$('pay').value?' / ₹ '+v('pay'):''}</td></tr>
-   <tr><td>4. Headquarters</td><td>: ${v('hq')}</td></tr>
-   <tr><td>5. Office</td><td>: ${v('office')}</td></tr>
-   <tr><td>6. Purpose of tour</td><td>: ${v('purpose')}</td></tr>
+   <tr><td style="width:38%">1. Name of the Officer</td><td>: ${v(P.name)}</td></tr>
+   <tr><td>2. Designation</td><td>: ${v(P.desig)}</td></tr>
+   <tr><td>3. Pay Level / Basic Pay</td><td>: ${v(P.level)}${P.pay?' / ₹ '+v(P.pay):''}</td></tr>
+   <tr><td>4. Headquarters</td><td>: ${v(P.hq)}</td></tr>
+   <tr><td>5. Office</td><td>: ${v(P.office)}</td></tr>
+   <tr><td>6. Purpose of tour</td><td>: ${v(M.purpose)}</td></tr>
   </table>
   <table>
-   <tr><th rowspan="2">Sl</th><th colspan="3">Departure</th><th colspan="3">Arrival</th><th rowspan="2">Mode of travel</th><th rowspan="2">Class</th><th rowspan="2">Fare paid (₹)</th><th rowspan="2">Dist. (km)</th><th rowspan="2">Purpose / nature of halt</th></tr>
+   <tr><th rowspan="2">Sl</th><th colspan="3">Departure</th><th colspan="3">Arrival</th><th rowspan="2">Mode of travel</th><th rowspan="2">Class</th><th rowspan="2">Fare paid (₹)</th><th rowspan="2">Dist. (km)</th><th rowspan="2">Purpose</th><th rowspan="2">Remarks</th></tr>
    <tr><th>Station</th><th>Date</th><th>Hour</th><th>Station</th><th>Date</th><th>Hour</th></tr>
-   ${rows||'<tr><td colspan="12" class="c">—</td></tr>'}
+   ${rows||'<tr><td colspan="13" class="c">—</td></tr>'}
   </table>
   <h3 style="margin-top:8px">PART B – CALCULATION OF CLAIM</h3>
   <table>
    <tr><th style="width:70%">Particulars</th><th>Amount (₹)</th></tr>
    <tr><td>1. Fare by bus / train / other conveyance (actuals)</td><td class="r">${t.fare.toFixed(2)}</td></tr>
-   <tr><td>2. Road Mileage Allowance (own bike): ${t.r.km} km × ₹ ${num($('rma').value)}/km${t.r.capped?' (limited to '+num($('rmacap').value)+' km per day)':''}</td><td class="r">${t.r.amt.toFixed(2)}</td></tr>
-   <tr><td>3. Daily Allowance @ ₹ ${num($('darate').value)} per day (details below)</td><td class="r">${t.daAmt.toFixed(2)}</td></tr>
-   <tr><td>4. Other admissible charges ${v('othd')?'('+v('othd')+')':''}</td><td class="r">${t.oth.toFixed(2)}</td></tr>
+   <tr><td>2. Road Mileage Allowance (own bike): ${t.km} km × ₹ ${num(P.rma)}/km${t.capped?' (limited to '+num(P.rmacap)+' km per day)':''}</td><td class="r">${t.rma.toFixed(2)}</td></tr>
+   <tr><td>3. Daily Allowance @ ₹ ${num(P.darate)} per day (details below)</td><td class="r">${t.daAmt.toFixed(2)}</td></tr>
+   <tr><td>4. Other admissible charges ${M.othd?'('+v(M.othd)+')':''}</td><td class="r">${t.oth.toFixed(2)}</td></tr>
    <tr><td><b>Gross total</b></td><td class="r"><b>${t.gross.toFixed(2)}</b></td></tr>
    <tr><td>Less: TA advance drawn</td><td class="r">${t.adv.toFixed(2)}</td></tr>
    <tr><td><b>Net amount claimed</b></td><td class="r"><b>${t.net.toFixed(2)}</b></td></tr>
   </table>
-  <div class="cert">(${words(t.net)})</div>
+  <p class="cert">(${words(t.net)})</p>
   <table style="width:70%">
    <tr><th>Sl</th><th>Date</th><th>Hours absent from HQ</th><th>DA %</th><th>Amount (₹)</th></tr>${darows}
   </table>
-  <div class="cert" style="font-size:9pt">DA rule: absence up to 6 hours – 30%; 6 to 12 hours – 70%; above 12 hours – 100% of the daily rate, per calendar day.</div>
-  <div class="cert"><b>Certificates</b></div>
-  <div class="cert">1. Certified that the journeys were performed on duty and the claims are in accordance with the rules.</div>
-  <div class="cert">2. Certified that I did not avail free boarding/lodging or a Government/free conveyance for the journeys claimed, except as stated.</div>
-  <div class="cert">3. Certified that the fare claimed has actually been paid and the class of travel is within entitlement.</div>
-  <div class="cert">4. Certified that the road mileage claimed for own conveyance relates to the shortest route.</div>
-  <div class="sig"><div>Station: ${v('hq')}<br>Date:</div><div class="c">Signature of the Officer<br>${v('name')}<br>${v('desig')}</div></div>
-  <div style="border-top:1px dashed #000;margin-top:18px;padding-top:6px">
-   <b>FOR USE IN THE CONTROLLING / DRAWING OFFICE</b>
-   <div class="cert">Countersigned. Passed for payment of ₹ ............................ (Rupees ................................................................................ only).</div>
-   <div class="sig"><div>Date:</div><div class="c">Controlling Officer</div></div>
-  </div>`;
+  <p class="cert" style="font-size:9pt">DA rule: absence up to 6 hours – 30%; 6 to 12 hours – 70%; above 12 hours – 100% of the daily rate, per calendar day.</p>
+  <p class="cert"><b>Certificates</b></p>
+  <p class="cert">1. Certified that the journeys were performed on duty and the claims are in accordance with the rules.</p>
+  <p class="cert">2. Certified that I did not avail free boarding/lodging or a Government/free conveyance for the journeys claimed, except as stated.</p>
+  <p class="cert">3. Certified that the fare claimed has actually been paid and the class of travel is within entitlement.</p>
+  <p class="cert">4. Certified that the road mileage claimed for own conveyance relates to the shortest route.</p>
+  <br><table class="nb"><tr><td>Station: ${v(P.hq)}<br>Date:</td><td class="r"><br><br>Signature of the Officer<br>${v(P.name)}<br>${v(P.desig)}</td></tr></table>
+  <hr style="border:none;border-top:1px dashed #000">
+  <p><b>FOR USE IN THE CONTROLLING / DRAWING OFFICE</b></p>
+  <p class="cert">Countersigned. Passed for payment of ₹ ............................ (Rupees ........................................................................ only).</p>
+  <table class="nb"><tr><td>Date:</td><td class="r"><br><br>Controlling Officer</td></tr></table>`;
 }
-function doPrint(){
-  buildPrint();
-  if(window.Android&&Android.print){Android.print()}else{window.print()}
-}
+window.doPrint=()=>{if(!entries().length)return toast('No entries this month');
+  $('print').innerHTML=billHTML();
+  if(window.Android&&Android.print)Android.print();else window.print()};
 
-function save(){
-  const o={};OF.forEach(k=>o[k]=$(k).value);store('tr25_officer',o);
-  const b={legs};BF.forEach(k=>b[k]=$(k).value);store('tr25_bill',b);
-  renderSum();
+function saveFile(name,mime,text){
+  if(window.Android&&Android.saveFile){Android.saveFile(name,mime,text);return}
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:mime}));a.download=name;document.body.appendChild(a);a.click();a.remove();toast('Downloaded '+name);
 }
-function newBill(){legs=[];BF.forEach(k=>$(k).value=k==='adv'||k==='oth'?'0':'');renderLegs();save()}
-function exportJSON(){
-  save();const data={officer:load('tr25_officer'),bill:load('tr25_bill')};
-  const blob=new Blob([JSON.stringify(data,null,1)],{type:'application/json'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='TR25_bill_'+($('month').value||'backup')+'.json';a.click();
+const fname=ext=>`TR25A_${(S.profile.name||'bill').replace(/\W+/g,'_')}_${cur}.${ext}`;
+window.exportWord=()=>{if(!entries().length)return toast('No entries this month');
+  const doc=`﻿<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="utf-8"><title>TR-25A ${mname(cur)}</title>
+<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->
+<style>@page Section1{size:595.3pt 841.9pt;margin:36pt 30pt 36pt 30pt}div.Section1{page:Section1}
+body{font-family:"Times New Roman";font-size:11pt}h3{text-align:center;margin:2pt 0;font-size:13pt}
+.c{text-align:center}.r{text-align:right}p{margin:3pt 0}
+table{width:100%;border-collapse:collapse;margin:4pt 0}th,td{border:1px solid #000;padding:2pt 3pt;font-size:9pt;vertical-align:top}
+table.kv td,table.nb td{border:none;font-size:10.5pt}.cert{font-size:10pt}</style></head>
+<body><div class="Section1">${billHTML().replace(/<table>/g,'<table border="1" cellspacing="0" cellpadding="3">').replace(/<table style="width:70%">/g,'<table border="1" cellspacing="0" cellpadding="3" style="width:70%">')}</div></body></html>`;
+  saveFile(fname('doc'),'application/msword',doc)};
+window.exportCSV=()=>{if(!entries().length)return toast('No entries this month');
+  const q=s=>'"'+String(s??'').replace(/"/g,'""')+'"';
+  const t=totals();
+  const lines=[['Sl','From','Dep Date','Dep Time','To','Arr Date','Arr Time','Mode','Class','Fare','Km','Purpose','Remarks'].map(q).join(',')];
+  t.L.forEach((l,i)=>lines.push([i+1,l.fs,fmtD(l.fd),l.ft,l.ts,fmtD(l.td),l.tt,l.mode,l.cls,isBike(l)?'':num(l.fare),l.km,l.purp,l.rem].map(q).join(',')));
+  lines.push('');[['Fare',t.fare],['RMA',t.rma],['DA',t.daAmt],['Other',t.oth],['Gross',t.gross],['Advance',t.adv],['Net',t.net]].forEach(r=>lines.push(q(r[0])+','+r[1]));
+  saveFile(fname('csv'),'text/csv','﻿'+lines.join('\r\n'))};
+
+/* ---------- backup / restore ---------- */
+window.backup=()=>saveFile(`TR25_backup_${new Date().toISOString().slice(0,10)}.json`,'application/json',JSON.stringify({app:'tr25',v:2,data:S}));
+window.restore=inp=>{const f=inp.files[0];if(!f)return;const r=new FileReader();
+  r.onload=()=>{try{const d=JSON.parse(r.result);const data=d.data||d;if(!data.months)throw 0;
+      if(!confirm('Replace all data on this phone with this backup?'))return;
+      data.user=data.user||S.user;S=data;persist();fillProfile();setMonth(cur);toast('Backup restored')}
+    catch(e){toast('Not a valid backup file')}};
+  r.readAsText(f);inp.value=''};
+
+/* ---------- start ---------- */
+S=loadS();if(!S){S=blank();migrateV1();persist()}
+cur=new Date().toISOString().slice(0,7);
+showLogin();
 }
-function importJSON(inp){
-  const f=inp.files[0];if(!f)return;const r=new FileReader();
-  r.onload=()=>{try{const d=JSON.parse(r.result);apply(d.officer,d.bill);save()}catch(e){alert('Not a valid backup file')}};
-  r.readAsText(f);inp.value='';
-}
-function apply(o,b){
-  if(o)OF.forEach(k=>{if(o[k]!=null)$(k).value=o[k]});
-  if(b){BF.forEach(k=>{if(b[k]!=null)$(k).value=b[k]});legs=b.legs||[]}
-  renderLegs();
-}
-[...OF,...BF].forEach(k=>$(k).addEventListener('input',save));
-apply(load('tr25_officer'),load('tr25_bill'));
-if(!legs.length)addLeg();
-if(!$('month').value){const d=new Date();$('month').value=d.toISOString().slice(0,7)}
-renderSum();
 </script>
 </body>
 </html>
