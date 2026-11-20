@@ -36,7 +36,7 @@ import com.postaltools.tr25.ui.theme.PostalRed
 import com.postaltools.tr25.ui.theme.PostalRedDark
 
 @Composable
-fun HomeScreen(onNew: () -> Unit, onList: (ListMode) -> Unit, onSettings: () -> Unit) {
+fun HomeScreen(onNew: () -> Unit, onList: (ListMode) -> Unit, onSettings: () -> Unit, onDiary: () -> Unit) {
     val app = LocalContext.current.applicationContext as TrApp
     val bills by remember { app.repo.observeAll() }.collectAsState(initial = emptyList())
     val drafts = bills.count { it.status == "DRAFT" }
@@ -63,6 +63,7 @@ fun HomeScreen(onNew: () -> Unit, onList: (ListMode) -> Unit, onSettings: () -> 
         }
 
         Column(Modifier.padding(16.dp).navigationBarsPadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Tile("★", "Tour Diary", "Enter tours day by day, month-wise; make the bill from it", primary = true, onClick = onDiary)
             Tile("A", "Create New TR-25 Bill", "Enter the details once; totals are worked out for you", primary = true, onClick = onNew)
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Tile("B", "View Saved Bills", "Search, open, copy or delete", Modifier.weight(1f)) { onList(ListMode.VIEW) }

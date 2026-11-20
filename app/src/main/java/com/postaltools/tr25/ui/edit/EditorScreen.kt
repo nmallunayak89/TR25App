@@ -66,10 +66,10 @@ private fun tabFor(key: String): Int = when {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EditorScreen(billId: Long, onBack: () -> Unit, onGenerated: (Long) -> Unit) {
+fun EditorScreen(billId: Long, month: String = "", onBack: () -> Unit, onGenerated: (Long) -> Unit) {
     val ctx = LocalContext.current
     val app = ctx.applicationContext as TrApp
-    val vm: EditorViewModel = viewModel(key = "editor-$billId", factory = EditorViewModel.factory(app, billId))
+    val vm: EditorViewModel = viewModel(key = "editor-$billId-$month", factory = EditorViewModel.factory(app, billId, month))
     val scope = rememberCoroutineScope()
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var problems by remember { mutableStateOf<List<Issue>?>(null) }

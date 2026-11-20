@@ -16,8 +16,9 @@ import com.postaltools.tr25.ui.settings.SettingsScreen
 object Routes {
     const val HOME = "home"
     const val SETTINGS = "settings"
+    const val DIARY = "diary"
     fun list(mode: ListMode) = "list/${mode.name}"
-    fun edit(id: Long) = "edit/$id"
+    fun edit(id: Long, month: String = "") = "edit/$id?month=$month"
     fun preview(id: Long, action: String = "") = "preview/$id?action=$action"
 }
 
@@ -30,6 +31,7 @@ fun AppNav() {
                 onNew = { nav.navigate(Routes.edit(0)) },
                 onList = { nav.navigate(Routes.list(it)) },
                 onSettings = { nav.navigate(Routes.SETTINGS) },
+                onDiary = { nav.navigate(Routes.DIARY) },
             )
         }
         composable(
@@ -47,17 +49,21 @@ fun AppNav() {
             )
         }
         composable(
-            "edit/{id}",
-            arguments = listOf(navArgument("id") { type = NavType.LongType }),
+            "edit/{id}?month={month}",
+            arguments = listOf(
+                navArgument("id") { type = NavType.LongType },
+                navArgument("month") { type = NavType.StringType; defaultValue = "" },
+            ),
         ) { entry ->
             val id = entry.arguments?.getLong("id") ?: 0L
             EditorScreen(
                 billId = id,
+                month = entry.arguments?.getString("month") ?: "",
                 onBack = { nav.popBackStack() },
                 onGenerated = { savedId ->
                     // Replace the editor with the preview so "back" returns to where the user started.
                     nav.navigate(Routes.preview(savedId)) {
-                        popUpTo("edit/{id}") { inclusive = true }
+                        popUpTo("edit/{id}?month={month}") { inclusive = true }
                     }
                 },
             )
@@ -83,6 +89,12 @@ fun AppNav() {
                         popUpTo(Routes.HOME)
                     }
                 },
+            )
+        }
+        composable(Routes.DIARY) {
+            com.postaltools.tr25.ui.diary.DiaryScreen(
+                onBack = { nav.popBackStack() },
+                onCreateBill = { m -> nav.navigate(Routes.edit(0, m)) },
             )
         }
         composable(Routes.SETTINGS) {

@@ -87,7 +87,8 @@ object Tr25aPdf {
             ),
             journeys.map {
                 listOf(dt(it.depDateTime), it.fromPlace, dt(it.arrDateTime), it.toPlace, it.modeClass,
-                    amt(it.fare), it.distanceKm.trim(), it.haltDays.trim(), it.haltHours.trim(), it.purpose)
+                    amt(it.fare), it.distanceKm.trim(), it.haltDays.trim(), it.haltHours.trim(),
+                    it.purpose + (if (it.remarks.isNotBlank()) " (${it.remarks.trim()})" else ""))
             },
         )
 
@@ -193,39 +194,61 @@ object Tr25aPdf {
         w.ensure(240f) // keep Part B together where possible
         w.rule(thick = true)
         w.paragraph("PART—B (To be filled in the Bill Section)", 9.5f, bold = true, align = CENTER, after = 5f)
+        // Part B is left blank – it is filled in by the Bill Section.
         w.paragraph(
-            "The net entitlement on account of travelling allowance works out to Rs. ${Money.format(t.gross)} " +
+            "The net entitlement on account of travelling allowance works out to Rs. .................... " +
                 "as detailed below :-", 8.5f, after = 5f,
         )
-        w.amountLine("(a) Railways/Air/Bus/Steamer fare", Money.format(t.fare))
-        w.amountLine(
-            "(b) Road mileage for ${Money.qty(t.km)} Kms. @ Rs. ${Money.format(t.mileageRate)} per Km.",
-            Money.format(t.mileage),
-        )
+        w.amountLine("(a) Railways/Air/Bus/Steamer fare", null)
+        w.amountLine("(b) Road mileage for .......... Kms. @ Rs. .......... per Km.", null)
         w.amountLine("(c) Daily allowance", null)
-        val roman = listOf("(i)", "(ii)", "(iii)", "(iv)", "(v)", "(vi)")
-        b.daSlabs.forEachIndexed { i, s ->
-            val days = Money.parse(s.days)?.let { Money.qty(it) } ?: s.days
-            val rate = Money.parse(s.rate)?.let { Money.format(it) } ?: s.rate
-            val label = if (s.days.isBlank() && s.rate.isBlank()) "${roman.getOrElse(i) { "(${i + 1})" }} ...... days @ Rs. ...... per day"
-            else "${roman.getOrElse(i) { "(${i + 1})" }} $days days @ Rs. $rate per day"
-            w.amountLine(label, Money.format(t.daLines.getOrElse(i) { java.math.BigDecimal.ZERO }), indent = 18f)
-        }
-        w.amountLine("Total of (c)", Money.format(t.daTotal), indent = 18f)
-        w.amountLine("(d) Actual expenses", Money.format(t.actualExpenses))
-        w.amountLine("Gross amount", Money.format(t.gross), bold = true)
-        w.amountLine(
-            "(e) Less amount of T.A. advance, if any, drawn vide Voucher No. " +
-                "${b.advanceVoucherNo.ifBlank { "........" }} date ${b.advanceVoucherDate.ifBlank { "........" }}",
-            Money.format(t.advance),
-        )
-        w.amountLine("Net amount", Money.format(t.net), bold = true)
+        listOf("(i)", "(ii)", "(iii)").forEach { w.amountLine("$it .......... days @ Rs. .......... per day", null, indent = 18f) }
+        w.amountLine("(d) Actual expenses", null)
+        w.amountLine("Gross amount", null, bold = true)
+        w.amountLine("(e) Less amount of T.A. advance, if any, drawn vide Voucher No. .......... date ..........", null)
+        w.amountLine("Net amount", null, bold = true)
         w.gap(3f)
-        w.field("The Expenditures debitable to", b.debitableTo, 150f)
+        w.field("The Expenditures debitable to", "", 150f)
 
         w.signatureRow("Initials of Bill Clerk", "Signature of D.D.O.", space = 30f)
         w.signatureRow("Countersigned", "", space = 14f)
         w.signatureRow("", "Signature of Controlling Officer", space = 24f)
+
+        // ---------------- CALCULATION OF CLAIM (separate page) ----------------
+        w.newPage()
+        w.paragraph("CALCULATION OF CLAIM", 13f, bold = true, align = CENTER, after = 2f)
+        w.paragraph("T.A. Bill for Tour — ${b.name}, ${b.designation}, HQ: ${b.headquarters}" +
+            (if (b.subBillNo.isNotBlank()) " — Sub-Bill No. ${b.subBillNo}" else ""), 8.5f, align = CENTER, after = 8f)
+        val calcRows = mutableListOf<List<String>>()
+        calcRows += listOf("1. Fare by rail / air / bus / other conveyance (actuals)", Money.format(t.fare))
+        calcRows += listOf("2. Road mileage: ${Money.qty(t.km)} Km × Rs. ${Money.format(t.mileageRate)} per Km" +
+            (if (t.kmCapped) " (limited to ${b.mileageCapKm.trim()} Km per day)" else ""), Money.format(t.mileage))
+        if (t.autoDa) {
+            val parts = t.autoDaLines.joinToString(" + ") {
+                "${it.days} day${if (it.days > 1) "s" else ""} @ Rs. ${Money.format(it.perDay)} (${it.pct}%)"
+            }
+            calcRows += listOf("3. Daily allowance @ Rs. ${Money.format(t.daRate)} per day" +
+                (if (parts.isNotEmpty()) ": $parts" else ""), Money.format(t.daTotal))
+        } else {
+            val parts = b.daSlabs.mapIndexedNotNull { i, s2 ->
+                if (s2.days.isBlank() && s2.rate.isBlank()) null
+                else "${s2.days.trim()} days @ Rs. ${amt(s2.rate)} = ${Money.format(t.daLines.getOrElse(i) { java.math.BigDecimal.ZERO })}"
+            }.joinToString("; ")
+            calcRows += listOf("3. Daily allowance" + (if (parts.isNotEmpty()) ": $parts" else ""), Money.format(t.daTotal))
+        }
+        calcRows += listOf("4. Actual expenses", Money.format(t.actualExpenses))
+        calcRows += listOf("Gross total", Money.format(t.gross))
+        calcRows += listOf("Less: T.A. advance drawn" +
+            (if (b.advanceVoucherNo.isNotBlank()) " (Voucher No. ${b.advanceVoucherNo}" +
+                (if (b.advanceVoucherDate.isNotBlank()) " dt. ${b.advanceVoucherDate}" else "") + ")" else ""),
+            Money.format(t.advance))
+        calcRows += listOf("Net amount claimed", Money.format(t.net))
+        w.table(
+            listOf(PdfWriter.Col("Particulars", 75f), PdfWriter.Col("Amount (Rs.)", 25f, RIGHT)),
+            calcRows, size = 9f,
+        )
+        w.paragraph("(${com.postaltools.tr25.logic.Words.rupees(t.net)})", 9f, after = 6f)
+        w.signatureRow("Date: ${b.claimDate}", "Signature of the Govt. Servant", space = 34f)
 
         w.finishPage()
         return w.pageNo

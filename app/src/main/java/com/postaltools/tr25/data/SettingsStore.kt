@@ -12,6 +12,7 @@ data class AppSettings(
     val debitableTo: String = "",
     val mileageRate: String = "",
     val daRate: String = "",
+    val mileageCapKm: String = "200",
 )
 
 class SettingsStore(context: Context) {
@@ -26,6 +27,7 @@ class SettingsStore(context: Context) {
         debitableTo = prefs.getString("debitableTo", "") ?: "",
         mileageRate = prefs.getString("mileageRate", "") ?: "",
         daRate = prefs.getString("daRate", "") ?: "",
+        mileageCapKm = prefs.getString("mileageCapKm", "200") ?: "200",
     )
 
     fun save(s: AppSettings) {
@@ -38,7 +40,22 @@ class SettingsStore(context: Context) {
             .putString("debitableTo", s.debitableTo.trim())
             .putString("mileageRate", s.mileageRate.trim())
             .putString("daRate", s.daRate.trim())
+            .putString("mileageCapKm", s.mileageCapKm.trim())
             .apply()
+    }
+
+    // ---------- PIN login (stored only as a hash) ----------
+    private fun hash(x: String): String {
+        val md = java.security.MessageDigest.getInstance("SHA-256")
+        return md.digest(("tr25::" + x).toByteArray()).joinToString("") { "%02x".format(it) }
+    }
+    fun hasPin() = prefs.getString("pinHash", null) != null
+    fun checkPin(pin: String) = prefs.getString("pinHash", null) == hash(pin)
+    fun checkRecovery(word: String) = prefs.getString("recHash", null) == hash(word.trim().lowercase())
+    fun setPin(pin: String, recovery: String? = null) {
+        val e = prefs.edit().putString("pinHash", hash(pin))
+        if (recovery != null) e.putString("recHash", hash(recovery.trim().lowercase()))
+        e.apply()
     }
 
     /** A blank bill with the saved defaults filled in. */
@@ -47,8 +64,9 @@ class SettingsStore(context: Context) {
         return TaBill(
             officeName = s.officeName, name = s.name, designation = s.designation,
             pay = s.pay, headquarters = s.headquarters, debitableTo = s.debitableTo,
-            mileageRate = s.mileageRate,
+            mileageRate = s.mileageRate.ifBlank { "15" },
             daSlabs = listOf(DaSlab(rate = s.daRate), DaSlab(), DaSlab()),
+            autoDa = true, daRate = s.daRate, mileageCapKm = s.mileageCapKm,
             claimDate = today,
         )
     }

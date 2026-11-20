@@ -25,7 +25,7 @@ sealed interface GenerateResult {
     data class Problems(val issues: List<Issue>) : GenerateResult
 }
 
-class EditorViewModel(private val app: TrApp, private val billId: Long) : ViewModel() {
+class EditorViewModel(private val app: TrApp, private val billId: Long, private val month: String = "") : ViewModel() {
 
     var bill by mutableStateOf(TaBill())
         private set
@@ -41,8 +41,15 @@ class EditorViewModel(private val app: TrApp, private val billId: Long) : ViewMo
 
     init {
         viewModelScope.launch {
-            bill = if (billId == 0L) app.settings.newBill(Dates.today())
-            else app.repo.load(billId) ?: app.settings.newBill(Dates.today())
+            bill = if (billId == 0L) {
+                val fresh = app.settings.newBill(Dates.today())
+                val ym = runCatching { java.time.YearMonth.parse(month) }.getOrNull()
+                if (ym == null) fresh else {
+                    // Bill for one month, filled from the Tour Diary.
+                    val rows = com.postaltools.tr25.ui.diary.journeysOf(app.diary.load(), ym)
+                    if (rows.isEmpty()) fresh else fresh.copy(journeys = rows, autoDa = true)
+                }
+            } else app.repo.load(billId) ?: app.settings.newBill(Dates.today())
             loaded = true
         }
     }
@@ -86,8 +93,8 @@ class EditorViewModel(private val app: TrApp, private val billId: Long) : ViewMo
     }
 
     companion object {
-        fun factory(app: TrApp, id: Long): ViewModelProvider.Factory = viewModelFactory {
-            initializer { EditorViewModel(app, id) }
+        fun factory(app: TrApp, id: Long, month: String = ""): ViewModelProvider.Factory = viewModelFactory {
+            initializer { EditorViewModel(app, id, month) }
         }
     }
 }

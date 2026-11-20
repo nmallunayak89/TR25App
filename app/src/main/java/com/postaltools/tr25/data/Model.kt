@@ -22,6 +22,7 @@ data class JourneyRow(
     val haltDays: String = "",      // (8) Duration of halt – Days
     val haltHours: String = "",     // (8) Duration of halt – Hours
     val purpose: String = "",       // (9) Purpose of journey
+    val remarks: String = "",       // Remarks (printed with the purpose)
 )
 
 /** Item 9: hotel / establishment stay where higher DA is claimed. */
@@ -104,7 +105,11 @@ data class TaBill(
     val fareOverride: String = "",       // (a) blank = total of fares in item 5
     val mileageKmOverride: String = "",  // (b) blank = total distance in item 5
     val mileageRate: String = "",        // (b) Rs per Km
-    val daSlabs: List<DaSlab> = listOf(DaSlab(), DaSlab(), DaSlab()), // (c)(i)(ii)(iii)
+    val daSlabs: List<DaSlab> = listOf(DaSlab(), DaSlab(), DaSlab()), // (c)(i)(ii)(iii) – used when autoDa is off
+    /** true = DA worked out from journey times (HQ → … → HQ, 30/70/100% per calendar day). */
+    val autoDa: Boolean = false,
+    val daRate: String = "",             // DA rate per day (100%) for auto DA
+    val mileageCapKm: String = "",       // road mileage limit per day (blank = no limit)
     val actualExpenses: String = "",     // (d)
     val advanceVoucherNo: String = "",   // (e)
     val advanceVoucherDate: String = "", // (e)

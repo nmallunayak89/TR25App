@@ -18,6 +18,7 @@ object BillJson {
                     put("arrDateTime", j.arrDateTime); put("toPlace", j.toPlace)
                     put("modeClass", j.modeClass); put("fare", j.fare); put("distanceKm", j.distanceKm)
                     put("haltDays", j.haltDays); put("haltHours", j.haltHours); put("purpose", j.purpose)
+                    put("remarks", j.remarks)
                 })
             }
         })
@@ -60,6 +61,7 @@ object BillJson {
         put("daSlabs", JSONArray().apply {
             b.daSlabs.forEach { s -> put(JSONObject().apply { put("days", s.days); put("rate", s.rate) }) }
         })
+        put("autoDa", b.autoDa); put("daRate", b.daRate); put("mileageCapKm", b.mileageCapKm)
         put("actualExpenses", b.actualExpenses)
         put("advanceVoucherNo", b.advanceVoucherNo); put("advanceVoucherDate", b.advanceVoucherDate)
         put("debitableTo", b.debitableTo)
@@ -76,7 +78,8 @@ object BillJson {
 
         val journeys = arr("journeys").map {
             JourneyRow(it.s("depDateTime"), it.s("fromPlace"), it.s("arrDateTime"), it.s("toPlace"),
-                it.s("modeClass"), it.s("fare"), it.s("distanceKm"), it.s("haltDays"), it.s("haltHours"), it.s("purpose"))
+                it.s("modeClass"), it.s("fare"), it.s("distanceKm"), it.s("haltDays"), it.s("haltHours"), it.s("purpose"),
+                it.s("remarks"))
         }
         val slabs = arr("daSlabs").map { DaSlab(it.s("days"), it.s("rate")) }
         return TaBill(
@@ -102,6 +105,7 @@ object BillJson {
             advanceAmount = s("advanceAmount"), claimDate = s("claimDate"),
             fareOverride = s("fareOverride"), mileageKmOverride = s("mileageKmOverride"), mileageRate = s("mileageRate"),
             daSlabs = (slabs + List(3) { DaSlab() }).take(maxOf(3, slabs.size)),
+            autoDa = o.optBoolean("autoDa", false), daRate = s("daRate"), mileageCapKm = s("mileageCapKm"),
             actualExpenses = s("actualExpenses"),
             advanceVoucherNo = s("advanceVoucherNo"), advanceVoucherDate = s("advanceVoucherDate"),
             debitableTo = s("debitableTo"),

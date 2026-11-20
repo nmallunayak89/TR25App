@@ -15,6 +15,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -27,6 +28,7 @@ import com.postaltools.tr25.data.HotelRow
 import com.postaltools.tr25.data.JourneyRow
 import com.postaltools.tr25.data.RoadRow
 import com.postaltools.tr25.logic.Money
+import com.postaltools.tr25.logic.Validator
 import com.postaltools.tr25.ui.components.DateField
 import com.postaltools.tr25.ui.components.Field
 import com.postaltools.tr25.ui.components.FieldKind
@@ -138,16 +140,59 @@ fun JourneysTab(vm: EditorViewModel) {
                         error = vm.errorFor("journey.$i.haltHours"), modifier = Modifier.weight(1f))
                 }
                 SuggestField("(9) Purpose of journey", j.purpose, PURPOSES, { v -> upd { it.copy(purpose = v) } })
+                Field("Remarks", j.remarks, { v -> upd { it.copy(remarks = v) } }, singleLine = false)
             }
         }
-        AddButton("Add journey") { vm.update { it.copy(journeys = it.journeys + JourneyRow()) } }
-        AddButton("Add return journey (swap From / To of last)") {
+        TourSummary(vm.totals, b.headquarters)
+        AddButton("Add connecting journey (from last place)") {
             vm.update {
-                val last = it.journeys.lastOrNull() ?: JourneyRow()
-                it.copy(journeys = it.journeys + JourneyRow(
-                    fromPlace = last.toPlace, toPlace = last.fromPlace, modeClass = last.modeClass,
+                val last = it.journeys.lastOrNull { j -> !Validator.isEmptyJourney(j) }
+                val row = if (last == null) JourneyRow(fromPlace = it.headquarters)
+                else JourneyRow(fromPlace = last.toPlace, modeClass = last.modeClass)
+                it.copy(journeys = it.journeys.filterNot { j -> Validator.isEmptyJourney(j) } + row)
+            }
+        }
+        AddButton("Add return journey to headquarters") {
+            vm.update {
+                val last = it.journeys.lastOrNull { j -> !Validator.isEmptyJourney(j) } ?: JourneyRow()
+                it.copy(journeys = it.journeys.filterNot { j -> Validator.isEmptyJourney(j) } + JourneyRow(
+                    fromPlace = last.toPlace, toPlace = it.headquarters, modeClass = last.modeClass,
                     fare = last.fare, distanceKm = last.distanceKm, purpose = "Return to headquarters",
                 ))
+            }
+        }
+    }
+}
+
+/** Tour movement: each tour from leaving HQ to reaching HQ, with hours away and DA %. */
+@Composable
+fun TourSummary(t: com.postaltools.tr25.logic.Totals, hq: String) {
+    if (t.tours.isEmpty()) return
+    Card(
+        Modifier.fillMaxWidth().padding(vertical = 6.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)),
+    ) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("Tour movement", fontWeight = FontWeight.Bold)
+            t.tours.forEach { tr ->
+                val f = java.time.format.DateTimeFormatter.ofPattern("dd-MM HH:mm")
+                val route = (listOf(tr.legs.first().fromPlace) + tr.legs.map { it.toPlace }).joinToString(" → ")
+                Text("Tour ${tr.no}: $route", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                Text(
+                    "Left HQ ${tr.start.format(f)} → " +
+                        (if (tr.returnedToHq) "reached HQ ${tr.end.format(f)}" else "return to HQ not entered") +
+                        " · ${com.postaltools.tr25.logic.Tours.hm(tr.minutes)} away",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (tr.returnedToHq && tr.startsFromHq) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.error,
+                )
+                if (!tr.startsFromHq && hq.isNotBlank()) Text("First journey is not from $hq",
+                    style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+            }
+            if (t.daDays.isNotEmpty()) {
+                val f = java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy")
+                Text("DA days: " + t.daDays.joinToString(" · ") {
+                    "${it.date.format(f)} ${com.postaltools.tr25.logic.Tours.hm(it.minutes)} → ${it.pct}%"
+                }, style = MaterialTheme.typography.bodyMedium)
             }
         }
     }
@@ -282,6 +327,10 @@ fun PartBTab(vm: EditorViewModel) {
         HorizontalDivider()
         Text("(b) Road mileage", style = MaterialTheme.typography.labelLarge)
         Text("Total distance in item 5: ${Money.qty(t.kmAuto)} Km", style = MaterialTheme.typography.bodyMedium)
+        Field("Mileage limit per day (Km, blank = no limit)", b.mileageCapKm, { v -> vm.update { it.copy(mileageCapKm = v) } },
+            kind = FieldKind.NUMBER, error = vm.errorFor("mileageCapKm"))
+        if (t.kmCapped) Text("Some days are above the limit; only ${b.mileageCapKm} Km per day is counted.",
+            style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.tertiary)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Field("Kms (blank = total)", b.mileageKmOverride, { v -> vm.update { it.copy(mileageKmOverride = v) } },
                 kind = FieldKind.NUMBER, error = vm.errorFor("mileageKmOverride"), modifier = Modifier.weight(1f))
@@ -291,8 +340,24 @@ fun PartBTab(vm: EditorViewModel) {
 
         HorizontalDivider()
         Text("(c) Daily allowance", style = MaterialTheme.typography.labelLarge)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Calculate DA from journey times (leave HQ → reach HQ; <6 h 30%, 6–12 h 70%, >12 h 100%)",
+                Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+            Switch(checked = b.autoDa, onCheckedChange = { v -> vm.update { it.copy(autoDa = v) } })
+        }
+        if (b.autoDa) {
+            MoneyField("DA rate per day (100%)", b.daRate, { v -> vm.update { it.copy(daRate = v) } }, error = vm.errorFor("daRate"))
+            if (t.autoDaLines.isEmpty()) Text("No complete tours yet – enter departure and arrival times in item 5.",
+                style = MaterialTheme.typography.bodyMedium)
+            t.autoDaLines.forEach {
+                CalcLine("${it.days} day${if (it.days > 1) "s" else ""} @ ${Money.rupees(it.perDay)} (${it.pct}%)", Money.rupees(it.amount))
+            }
+            TourSummary(t, b.headquarters)
+            Text("Switch off to type the DA lines by hand.", style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
         val roman = listOf("(i)", "(ii)", "(iii)", "(iv)", "(v)", "(vi)")
-        b.daSlabs.forEachIndexed { i, s ->
+        if (!b.autoDa) b.daSlabs.forEachIndexed { i, s ->
             fun upd(f: (DaSlab) -> DaSlab) = vm.update { it.copy(daSlabs = it.daSlabs.set(i, f(it.daSlabs[i]))) }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(roman.getOrElse(i) { "(${i + 1})" }, Modifier.padding(end = 2.dp))
@@ -305,7 +370,7 @@ fun PartBTab(vm: EditorViewModel) {
                 }
             }
         }
-        if (b.daSlabs.size < 6) AddButton("Add another DA line") { vm.update { it.copy(daSlabs = it.daSlabs + DaSlab()) } }
+        if (!b.autoDa && b.daSlabs.size < 6) AddButton("Add another DA line") { vm.update { it.copy(daSlabs = it.daSlabs + DaSlab()) } }
 
         HorizontalDivider()
         MoneyField("(d) Actual expenses", b.actualExpenses, { v -> vm.update { it.copy(actualExpenses = v) } },

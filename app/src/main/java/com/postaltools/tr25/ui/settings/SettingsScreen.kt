@@ -101,6 +101,8 @@ fun SettingsScreen(onBack: () -> Unit) {
                 Field("Expenditure debitable to (Head of account)", s.debitableTo, { s = s.copy(debitableTo = it) }, singleLine = false)
                 MoneyField("Road mileage rate per Km", s.mileageRate, { s = s.copy(mileageRate = it) })
                 MoneyField("Daily allowance rate per day", s.daRate, { s = s.copy(daRate = it) })
+                Field("Road mileage limit per day (Km)", s.mileageCapKm, { s = s.copy(mileageCapKm = it) },
+                    kind = com.postaltools.tr25.ui.components.FieldKind.NUMBER)
                 Text(
                     "Rates are not built into the app. Enter the rates that apply to you as per current orders.",
                     style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -111,6 +113,17 @@ fun SettingsScreen(onBack: () -> Unit) {
                 }, Modifier.fillMaxWidth()) { Text("SAVE DEFAULTS") }
             }
 
+            Section("Login PIN", "The app asks for this PIN every time it is opened.") {
+                var newPin by remember { mutableStateOf("") }
+                Field("New 4-digit PIN", newPin, { v -> newPin = v.filter { it.isDigit() }.take(4) },
+                    kind = com.postaltools.tr25.ui.components.FieldKind.WHOLE)
+                Button(onClick = {
+                    if (newPin.length == 4) {
+                        app.settings.setPin(newPin); newPin = ""
+                        scope.launch { snack.showSnackbar("PIN changed") }
+                    } else scope.launch { snack.showSnackbar("PIN must be 4 digits") }
+                }, Modifier.fillMaxWidth()) { Text("CHANGE PIN") }
+            }
             Section("Backup and restore", "A backup is a single file with all your bills. Keep it somewhere safe.") {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedButton(

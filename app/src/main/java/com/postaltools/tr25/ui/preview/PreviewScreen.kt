@@ -110,6 +110,21 @@ fun PreviewScreen(
         }
     }
 
+    val saveWord = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/msword")) { uri ->
+        val b = bill
+        if (uri != null && b != null) {
+            scope.launch {
+                val ok = withContext(Dispatchers.IO) {
+                    runCatching {
+                        ctx.contentResolver.openOutputStream(uri)?.use { it.write(com.postaltools.tr25.util.WordDoc.build(b).toByteArray()) }
+                            ?: error("Could not open the selected location")
+                    }
+                }
+                snack.showSnackbar(if (ok.isSuccess) "Word file saved" else "Could not save: ${ok.exceptionOrNull()?.message}")
+            }
+        }
+    }
+
     LaunchedEffect(billId) {
         try {
             val b = app.repo.load(billId) ?: error("Bill not found")
@@ -168,6 +183,7 @@ fun PreviewScreen(
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             FilledTonalButton({ PdfFiles.share(ctx, f) }, Modifier.weight(1f)) { Text("SHARE PDF") }
+                            FilledTonalButton({ saveWord.launch(f.nameWithoutExtension + ".doc") }, Modifier.weight(1f)) { Text("WORD") }
                             OutlinedButton({ onEdit(billId) }, Modifier.weight(1f)) { Text("EDIT DATA") }
                             Button({
                                 Toast.makeText(ctx, "Bill saved on this phone", Toast.LENGTH_SHORT).show()
