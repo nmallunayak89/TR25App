@@ -67,9 +67,13 @@ nav button.on{color:var(--red);font-weight:700}
 @media print{
   @page{size:A4;margin:12mm}
   body{background:#fff;font-family:"Times New Roman",serif;font-size:11pt}
-  #login,#app{display:none!important}
+  #login,#app,.toast{display:none!important}
   #print{display:block}
+  html,body{width:auto!important;min-width:0!important}
 }
+#print{max-width:100%;overflow:hidden}
+#print table{table-layout:fixed;word-wrap:break-word;overflow-wrap:anywhere}
+#print table.jt th,#print table.jt td{font-size:8pt;padding:2px}
 #print h3{text-align:center;margin:2px 0;font-size:13pt}
 #print .c{text-align:center}
 #print td.c{white-space:nowrap}
@@ -146,7 +150,20 @@ nav button.on{color:var(--red);font-weight:700}
         <div><label>Fare paid (₹)</label><input type="number" inputmode="decimal" id="f_fare"></div>
         <div><label>Distance (km)</label><input type="number" inputmode="decimal" id="f_km"></div>
         <div class="full"><label>Purpose / work done</label><input id="f_purp" placeholder="e.g. Annual inspection of Kolar HO"></div>
-        <div class="full"><label class="chk"><input type="checkbox" id="f_endHQ"> Return journey – reached HQ (tour ends here)</label></div>
+        <div class="full"><label class="chk"><input type="checkbox" id="f_endHQ"> This journey reaches HQ (tour ends here)</label></div>
+        <div class="full" id="retbox">
+          <label class="chk"><input type="checkbox" id="r_on" onchange="retToggle()"> Also add return journey to HQ</label>
+          <div class="grid" id="r_fields" style="margin-top:10px">
+            <div><label>Left (station) on return</label><input id="r_fs" disabled></div>
+            <div><label>Reached HQ</label><input id="r_ts" disabled></div>
+            <div><label>Return departure date</label><input type="date" id="r_fd"></div>
+            <div><label>Return departure time</label><input type="time" id="r_ft"></div>
+            <div><label>Reached HQ date</label><input type="date" id="r_td"></div>
+            <div><label>Reached HQ time</label><input type="time" id="r_tt"></div>
+            <div><label>Return fare (₹)</label><input type="number" inputmode="decimal" id="r_fare"></div>
+            <div><label>Return distance (km)</label><input type="number" inputmode="decimal" id="r_km"></div>
+          </div>
+        </div>
         <div class="full"><label>Remarks</label><textarea id="f_rem" rows="2" placeholder="e.g. Stayed at IB; BO visit; night halt"></textarea></div>
       </div>
       <div class="row" style="margin-top:12px">
@@ -315,12 +332,22 @@ window.openForm=(e)=>{
   const last=entries().slice(-1)[0];
   const d=e||{fs:last?last.ts:S.profile.hq,ts:'',fd:defDate(),ft:'',td:'',tt:'',mode:last?last.mode:'Bus',cls:last?last.cls:'Ordinary',fare:'',km:'',purp:'',rem:''};
   FF.forEach(k=>$('f_'+k).value=d[k]||'');if(!e)$('f_td').value=d.fd;$('f_endHQ').checked=e?endsHQ(e):false;
+  $('retbox').classList.toggle('hide',!!e);$('r_on').checked=!e&&isHQ(d.fs);['fd','ft','td','tt','fare','km'].forEach(k=>$('r_'+k).value='');syncRet();retToggle();
   $('form').classList.remove('hide');$('quick').classList.add('hide');$('fab').classList.add('hide');
   window.scrollTo(0,0);
 };
 window.openReturn=()=>{const l=entries().slice(-1)[0];if(!l)return openForm();
   openForm();Object.entries({fs:l.ts,ts:l.fs,fd:l.td,td:l.td,mode:l.mode,cls:l.cls,fare:l.fare,km:l.km,purp:'Return to HQ'}).forEach(([k,v])=>$('f_'+k).value=v||'');$('f_endHQ').checked=isHQ(l.fs)};
-$('f_ts').addEventListener('input',()=>{$('f_endHQ').checked=isHQ($('f_ts').value)});
+$('f_ts').addEventListener('input',()=>{$('f_endHQ').checked=isHQ($('f_ts').value);if(isHQ($('f_ts').value)){$('r_on').checked=false;retToggle()}});
+function syncRet(){$('r_fs').value=$('f_ts').value;$('r_ts').value=S.profile.hq;
+  if(!$('r_fd').value)$('r_fd').value=$('f_td').value||$('f_fd').value;
+  if(!$('r_td').value||$('r_td').value<$('r_fd').value)$('r_td').value=$('r_fd').value;
+  if(!$('r_fare').dataset.t)$('r_fare').value=$('f_fare').value;if(!$('r_km').dataset.t)$('r_km').value=$('f_km').value}
+window.retToggle=()=>{$('r_fields').classList.toggle('hide',!$('r_on').checked);if($('r_on').checked)$('f_endHQ').checked=false};
+['f_fs','f_ts','f_fd','f_td','f_fare','f_km'].forEach(id=>$(id).addEventListener('input',syncRet));
+['f_fd','f_td'].forEach(id=>$(id).addEventListener('change',syncRet));
+$('r_fd').addEventListener('change',()=>{if(!$('r_td').value||$('r_td').value<$('r_fd').value)$('r_td').value=$('r_fd').value});
+['r_fare','r_km'].forEach(id=>$(id).addEventListener('input',()=>$(id).dataset.t='1'));
 function defDate(){const t=new Date().toISOString().slice(0,10);return t.slice(0,7)===cur?t:cur+'-01'}
 window.closeForm=()=>{$('form').classList.add('hide');$('quick').classList.remove('hide');if(!$('tab_diary').classList.contains('hide'))$('fab').classList.remove('hide');editId=null};
 $('f_fd').addEventListener('change',()=>{if(!$('f_td').value||$('f_td').value<$('f_fd').value)$('f_td').value=$('f_fd').value});
@@ -331,9 +358,18 @@ window.saveEntry=()=>{
   if(!d.fd)return $('f_err').textContent='Enter departure date';
   if(!d.td)d.td=d.fd;
   if(new Date(d.td+'T'+(d.tt||'00:00'))<new Date(d.fd+'T'+(d.ft||'00:00')))return $('f_err').textContent='Arrival is before departure';
+  let ret=null;
+  if(!editId&&$('r_on').checked){
+    ret={fs:d.ts,ts:S.profile.hq,fd:$('r_fd').value,ft:$('r_ft').value,td:$('r_td').value||$('r_fd').value,tt:$('r_tt').value,mode:d.mode,cls:d.cls,fare:$('r_fare').value,km:$('r_km').value,purp:'Return to HQ',rem:'',endHQ:true};
+    if(!ret.fd||!ret.ft||!ret.tt)return $('f_err').textContent='Enter return departure date, time and time of reaching HQ';
+    if(new Date(ret.fd+'T'+ret.ft)<new Date(d.td+'T'+(d.tt||'00:00')))return $('f_err').textContent='Return departure is before arrival at '+d.ts;
+    if(new Date(ret.td+'T'+ret.tt)<new Date(ret.fd+'T'+ret.ft))return $('f_err').textContent='Reached HQ time is before return departure';
+    d.endHQ=false}
   const m=d.fd.slice(0,7);
   if(editId){Object.values(S.months).forEach(M=>M.entries=M.entries.filter(x=>x.id!==editId))}
-  mon(m).entries.push(Object.assign({id:editId||uid()},d));persist();
+  mon(m).entries.push(Object.assign({id:editId||uid()},d));
+  if(ret)mon(ret.fd.slice(0,7)).entries.push(Object.assign({id:uid()},ret));
+  $('r_fare').dataset.t='';$('r_km').dataset.t='';persist();
   closeForm();if(m!==cur){setMonth(m);toast('Saved in '+mname(m))}else{renderAll();toast('Saved')}
 };
 window.delEntry=()=>{if(!confirm('Delete this entry?'))return;
@@ -398,7 +434,8 @@ function renderAll(){
     <div class="stat"><b>${t.T.length}</b><span>tours · ${t.da.length} DA days</span></div>
     <div class="stat"><b>${Math.round(t.net).toLocaleString('en-IN')}</b><span>net claim ₹</span></div>`;
   // diary grouped by date
-  const hqWarn=S.profile.hq.trim()?'':`<div class="tour bad">Set your <b>Headquarters</b> in Settings – tours start and end there.</div>`;
+  const hqWarn=(S.profile.hq.trim()?'':`<div class="tour bad">Set your <b>Headquarters</b> in Settings – tours start and end there.</div>`)+
+    (num(S.profile.darate)?'':`<div class="tour bad"><b>DA rate is not set</b> – DA will show ₹0. Enter it in Settings → Rates.</div>`);
   if(!t.L.length){$('diary').innerHTML=hqWarn+`<div class="empty">No tour entries for ${mname(cur)}.<br>Tap <b>+</b> to add a journey.</div>`}
   else{let html=hqWarn,last='';const tf=x=>x.toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:false});
     t.L.forEach(l=>{const T=t.T.find(x=>x.legs[0]===l);
@@ -457,7 +494,8 @@ function billHTML(){
    <tr><td>5. Office</td><td>: ${v(P.office)}</td></tr>
    <tr><td>6. Purpose of tour</td><td>: ${v(M.purpose)}</td></tr>
   </table>
-  <table>
+  <table class="jt">
+   <colgroup><col style="width:4%"><col style="width:11%"><col style="width:9%"><col style="width:6%"><col style="width:11%"><col style="width:9%"><col style="width:6%"><col style="width:8%"><col style="width:7%"><col style="width:6%"><col style="width:5%"><col style="width:9%"><col style="width:9%"></colgroup>
    <tr><th rowspan="2">Sl</th><th colspan="3">Departure</th><th colspan="3">Arrival</th><th rowspan="2">Mode of travel</th><th rowspan="2">Class</th><th rowspan="2">Fare paid (₹)</th><th rowspan="2">Dist. (km)</th><th rowspan="2">Purpose</th><th rowspan="2">Remarks</th></tr>
    <tr><th>Station</th><th>Date</th><th>Hour</th><th>Station</th><th>Date</th><th>Hour</th></tr>
    ${rows||'<tr><td colspan="13" class="c">—</td></tr>'}
@@ -512,7 +550,7 @@ body{font-family:"Times New Roman";font-size:11pt}h3{text-align:center;margin:2p
 .c{text-align:center}.r{text-align:right}p{margin:3pt 0}
 table{width:100%;border-collapse:collapse;margin:4pt 0}th,td{border:1px solid #000;padding:2pt 3pt;font-size:9pt;vertical-align:top}
 table.kv td,table.nb td{border:none;font-size:10.5pt}.cert{font-size:10pt}</style></head>
-<body><div class="Section1">${billHTML().replace(/<table>/g,'<table border="1" cellspacing="0" cellpadding="3">').replace(/<table style="width:70%">/g,'<table border="1" cellspacing="0" cellpadding="3" style="width:70%">')}</div></body></html>`;
+<body><div class="Section1">${billHTML().replace(/<table>/g,'<table border="1" cellspacing="0" cellpadding="3">').replace(/<table class="jt">/g,'<table class="jt" border="1" cellspacing="0" cellpadding="2">').replace(/<table style="width:70%">/g,'<table border="1" cellspacing="0" cellpadding="3" style="width:70%">')}</div></body></html>`;
   saveFile(fname('doc'),'application/msword',doc)};
 window.exportCSV=()=>{if(!entries().length)return toast('No entries this month');
   const q=s=>'"'+String(s??'').replace(/"/g,'""')+'"';
