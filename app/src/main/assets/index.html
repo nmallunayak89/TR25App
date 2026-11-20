@@ -679,12 +679,7 @@ function calcSheet(t){
    <tr><td><b>Net amount claimed</b></td><td class="r"><b>${f2(t.net)}</b></td></tr>
   </table>
   <p>(${words(t.net)})</p>
-  <p><b>B. Tour-wise absence from Headquarters</b></p>
-  <table ${TB}>
-   <tr><th width="7%">Tour</th><th>Route</th><th width="17%">Left HQ</th><th width="17%">Returned to HQ</th><th width="9%">Hours</th><th width="12%">DA (Rs.)</th></tr>
-   ${t.T.map(T=>`<tr><td class="c">${T.no}</td><td>${[T.legs[0].fs].concat(T.legs.map(l=>l.ts)).map(esc).join(' – ')}</td><td class="c">${sd(T.start)}</td><td class="c">${T.ok?sd(T.end):'Not returned'}</td><td class="c">${hm(T.h)}</td><td class="r">${f2(daT(T.no))}</td></tr>`).join('')||'<tr><td colspan="6" class="c">Nil</td></tr>'}
-  </table>
-  <p><b>C. Day-wise Daily Allowance</b> (absence per calendar day: up to 6 h – 30%; 6 to 12 h – 70%; above 12 h – 100%)</p>
+  <p><b>B. Day-wise Daily Allowance</b> (absence per calendar day: up to 6 h – 30%; 6 to 12 h – 70%; above 12 h – 100%)</p>
   <table ${TB}>
    <tr><th width="8%">Sl</th><th>Date</th><th>Tour</th><th>Hours absent from HQ</th><th>DA %</th><th>Amount (Rs.)</th></tr>
    ${t.da.map((x,i)=>`<tr><td class="c">${i+1}</td><td class="c">${fmtD(x.d)}</td><td class="c">${x.t.join(', ')}</td><td class="c">${hm(x.h)}</td><td class="c">${x.pct}%</td><td class="r">${f2(x.amt)}</td></tr>`).join('')||'<tr><td colspan="6" class="c">Nil</td></tr>'}
