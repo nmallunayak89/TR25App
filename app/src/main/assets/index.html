@@ -28,6 +28,11 @@ button{font:inherit;border:0;border-radius:8px;padding:11px 14px;cursor:pointer;
 .row>button{flex:1 1 auto}
 .chk{display:flex;align-items:center;gap:10px;font-size:15px;color:var(--ink);background:#faf7f7;padding:10px;border-radius:8px}.chk input{width:22px;height:22px;margin:0}
 .tour{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:10px 0 4px;background:#fff}.tour b{color:var(--red)}.tour.bad{border-color:var(--red);background:#fff1f2}
+.sec{font-weight:700;color:var(--ink);margin:14px 0 6px;font-size:15px;border-bottom:2px solid var(--red);padding-bottom:4px}
+.leg{border:1px solid #e0d4d6;border-radius:10px;padding:10px;margin:8px 0;background:#fffdfd}
+.leg .no{font-weight:700;font-size:13px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;color:var(--red)}
+.leg .no button{min-height:34px;padding:4px 10px;font-size:13px}
+input[readonly]{background:#f3f3f5}
 .note{font-size:12px;color:var(--mute);margin-top:6px}
 .err{color:var(--red);font-size:13px;min-height:18px;margin-top:6px}
 .hide{display:none!important}
@@ -173,8 +178,26 @@ nav button.on{color:var(--red);font-weight:700}
       </div>
       <div class="err" id="f_err"></div>
     </div>
+    <div class="card hide" id="tform">
+      <h2>New tour</h2>
+      <div class="sec">Onward journey</div>
+      <div id="t_out"></div>
+      <button class="btn2" style="width:100%" onclick="addSlot('out')">+ Connecting journey (onward)</button>
+      <label class="chk" style="margin-top:14px"><input type="checkbox" id="t_reton" checked onchange="renderSlots()"> Add return journey to HQ now</label>
+      <div id="t_backwrap">
+        <div class="sec">Return journey</div>
+        <div id="t_back"></div>
+        <button class="btn2" style="width:100%" onclick="addSlot('back')">+ Connecting journey (return)</button>
+      </div>
+      <div class="note" id="t_info"></div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn" onclick="saveTour()">Save tour</button>
+        <button class="btnx" onclick="closeTour()">Cancel</button>
+      </div>
+      <div class="err" id="t_err"></div>
+    </div>
     <div class="row" id="quick">
-      <button class="btn2" onclick="openForm()">+ New journey</button>
+      <button class="btn2" onclick="openTour()">+ New tour</button>
       <button class="btn2" onclick="openReturn()">+ Return of last</button>
     </div>
     <div id="diary"></div>
@@ -245,7 +268,7 @@ nav button.on{color:var(--red);font-weight:700}
   </section>
 </main>
 
-<button class="btn fab" id="fab" onclick="openForm()">+</button>
+<button class="btn fab" id="fab" onclick="openTour()">+</button>
 <nav>
   <button id="n_diary" class="on" onclick="tab('diary')"><b>☰</b>Tour diary</button>
   <button id="n_bill" onclick="tab('bill')"><b>₹</b>Bill</button>
@@ -304,13 +327,13 @@ window.doReset=()=>{
   S.user.pin=h($('rs_pin').value);persist();toast('PIN changed');enter();
 };
 window.changePin=()=>{const p=$('cp_pin').value;if(!/^\d{4}$/.test(p))return toast('PIN must be 4 digits');S.user.pin=h(p);persist();$('cp_pin').value='';toast('PIN changed')};
-window.lock=()=>{closeForm();showLogin()};
+window.lock=()=>{closeForm();if(TF)closeTour();showLogin()};
 function lerr(t){$('lg_err').textContent=t}
 function enter(){$('login').classList.add('hide');$('app').classList.remove('hide');fillProfile();setMonth(cur||new Date().toISOString().slice(0,7))}
 
 /* ---------- navigation ---------- */
 window.tab=t=>{['diary','bill','set'].forEach(x=>{$('tab_'+x).classList.toggle('hide',x!==t);$('n_'+x).classList.toggle('on',x===t)});
-  $('fab').classList.toggle('hide',t!=='diary');if(t!=='diary')closeForm();window.scrollTo(0,0)};
+  $('fab').classList.toggle('hide',t!=='diary');if(t!=='diary'){closeForm();if(TF)closeTour()}window.scrollTo(0,0)};
 window.setMonth=m=>{if(!m)return;cur=m;$('month').value=m;fillBill();renderAll()};
 window.shiftMonth=d=>{const [y,m]=cur.split('-').map(Number);const x=new Date(y,m-1+d,1);setMonth(`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}`)};
 
@@ -332,7 +355,7 @@ window.openForm=(e)=>{
   const last=entries().slice(-1)[0];
   const d=e||{fs:last?last.ts:S.profile.hq,ts:'',fd:defDate(),ft:'',td:'',tt:'',mode:last?last.mode:'Bus',cls:last?last.cls:'Ordinary',fare:'',km:'',purp:'',rem:''};
   FF.forEach(k=>$('f_'+k).value=d[k]||'');if(!e)$('f_td').value=d.fd;$('f_endHQ').checked=e?endsHQ(e):false;
-  $('retbox').classList.toggle('hide',!!e);$('r_on').checked=!e&&isHQ(d.fs);['fd','ft','td','tt','fare','km'].forEach(k=>$('r_'+k).value='');syncRet();retToggle();
+  $('retbox').classList.add('hide');$('r_on').checked=false;['fd','ft','td','tt','fare','km'].forEach(k=>$('r_'+k).value='');syncRet();retToggle();
   $('form').classList.remove('hide');$('quick').classList.add('hide');$('fab').classList.add('hide');
   window.scrollTo(0,0);
 };
@@ -374,6 +397,72 @@ window.saveEntry=()=>{
 };
 window.delEntry=()=>{if(!confirm('Delete this entry?'))return;
   Object.values(S.months).forEach(M=>M.entries=M.entries.filter(x=>x.id!==editId));persist();closeForm();renderAll();toast('Deleted')};
+
+/* ---------- new tour: onward + connecting + return slots ---------- */
+let TF=null;
+const blankSlot=prev=>({fs:prev?prev.ts:S.profile.hq,ts:'',fd:prev?(prev.td||prev.fd):defDate(),ft:'',td:'',tt:'',mode:prev?prev.mode:'Bus',cls:prev?prev.cls:'Ordinary',fare:'',km:'',purp:'',rem:'',_t:{}});
+function flat(){return TF.out.concat($('t_reton').checked?TF.back:[])}
+window.openTour=()=>{
+  if(!S.profile.hq.trim()){toast('First set your Headquarters in Settings');tab('set');return}
+  closeForm();const a=blankSlot(null);TF={out:[a],back:[]};
+  const r=blankSlot(a);r.ts=S.profile.hq;r.purp='Return to HQ';TF.back=[r];
+  $('t_reton').checked=true;$('t_err').textContent='';renderSlots();
+  $('tform').classList.remove('hide');$('quick').classList.add('hide');$('fab').classList.add('hide');window.scrollTo(0,0);
+};
+window.closeTour=()=>{$('tform').classList.add('hide');$('quick').classList.remove('hide');if(!$('tab_diary').classList.contains('hide'))$('fab').classList.remove('hide');TF=null};
+window.addSlot=side=>{const L=flat();
+  if(side==='out'){const prev=TF.out[TF.out.length-1];TF.out.push(blankSlot(prev))}
+  else{const i=Math.max(TF.back.length-1,0);const prev=i>0?TF.back[i-1]:TF.out[TF.out.length-1];TF.back.splice(i,0,blankSlot(prev))}
+  renderSlots()};
+window.rmSlot=(side,i)=>{TF[side].splice(i,1);renderSlots()};
+function slotHTML(x,side,i,label,last){
+  const ro=last?'readonly':'';
+  return `<div class="leg" data-side="${side}" data-i="${i}"><div class="no">${label}${(side==='out'&&i>0)||(side==='back'&&!last)?`<button class="btnx" onclick="rmSlot('${side}',${i})">Remove</button>`:''}</div>
+  <div class="grid">
+   <div><label>From</label><input data-k="fs" value="${esc(x.fs)}" ${side==='out'&&i===0?'':''}></div>
+   <div><label>To${last?' (HQ)':''}</label><input data-k="ts" value="${esc(x.ts)}" ${ro}></div>
+   <div><label>Departure date</label><input type="date" data-k="fd" value="${x.fd}"></div>
+   <div><label>Departure time</label><input type="time" data-k="ft" value="${x.ft}"></div>
+   <div><label>Arrival date</label><input type="date" data-k="td" value="${x.td}"></div>
+   <div><label>Arrival time</label><input type="time" data-k="tt" value="${x.tt}"></div>
+   <div><label>Mode</label><select data-k="mode">${MODES.map(m=>`<option ${m===x.mode?'selected':''}>${m}</option>`).join('')}</select></div>
+   <div><label>Class</label><input data-k="cls" value="${esc(x.cls)}"></div>
+   <div><label>Fare (₹)</label><input type="number" inputmode="decimal" data-k="fare" value="${x.fare}"></div>
+   <div><label>Distance (km)</label><input type="number" inputmode="decimal" data-k="km" value="${x.km}"></div>
+   <div class="full"><label>Purpose / work done</label><input data-k="purp" value="${esc(x.purp)}"></div>
+   <div class="full"><label>Remarks</label><input data-k="rem" value="${esc(x.rem)}"></div>
+  </div></div>`}
+window.renderSlots=()=>{
+  $('t_out').innerHTML=TF.out.map((x,i)=>slotHTML(x,'out',i,i===0?'Starting journey (from HQ)':'Connecting journey '+i,false)).join('');
+  $('t_back').innerHTML=TF.back.map((x,i)=>{const last=i===TF.back.length-1;return slotHTML(x,'back',i,last?'Return journey (reaches HQ)':'Connecting journey (return) '+(i+1),last)}).join('');
+  $('t_backwrap').classList.toggle('hide',!$('t_reton').checked);
+  $('tform').querySelectorAll('.leg').forEach(el=>{const x=TF[el.dataset.side][+el.dataset.i];
+    el.querySelectorAll('[data-k]').forEach(inp=>{const ev=()=>{x[inp.dataset.k]=inp.value;x._t[inp.dataset.k]=true;chain()};
+      inp.addEventListener('input',ev);inp.addEventListener('change',ev)})});
+  chain()};
+function chain(){
+  const L=flat();
+  L.forEach((x,i)=>{const prev=L[i-1];
+    if(prev){if(!x._t.fs)x.fs=prev.ts;if(!x._t.fd)x.fd=prev.td||prev.fd;if(!x._t.mode)x.mode=prev.mode}
+    if(!x._t.td||x.td<x.fd)x.td=x.fd});
+  if(TF.back.length)TF.back[TF.back.length-1].ts=S.profile.hq;
+  // push values to screen without disturbing the box being typed in
+  $('tform').querySelectorAll('.leg').forEach(el=>{const x=TF[el.dataset.side][+el.dataset.i];
+    el.querySelectorAll('[data-k]').forEach(inp=>{if(inp!==document.activeElement&&inp.value!==(x[inp.dataset.k]||''))inp.value=x[inp.dataset.k]||''})});
+  const a=L[0],z=L[L.length-1];const st=dt(a.fd,a.ft),en=dt(z.td,z.tt);
+  $('t_info').textContent=$('t_reton').checked&&st&&en&&en>st&&a.ft&&z.tt?`Away from HQ: ${((en-st)/36e5).toFixed(1)} hours (${a.ft} on ${fmtD(a.fd)} to ${z.tt} on ${fmtD(z.td)})`:'';
+}
+window.saveTour=()=>{
+  const L=flat(),err=t=>$('t_err').textContent=t;
+  for(let i=0;i<L.length;i++){const x=L[i],n=i+1;
+    if(!x.fs||!x.ts)return err(`Journey ${n}: enter From and To`);
+    if(!x.fd||!x.ft||!x.tt)return err(`Journey ${n}: enter departure date, departure time and arrival time`);
+    if(dt(x.td,x.tt)<dt(x.fd,x.ft))return err(`Journey ${n}: arrival is before departure`);
+    if(i>0&&dt(x.fd,x.ft)<dt(L[i-1].td,L[i-1].tt))return err(`Journey ${n} starts before journey ${i} arrives`)}
+  const ret=$('t_reton').checked;
+  L.forEach((x,i)=>{const e={id:uid(),endHQ:ret&&i===L.length-1};FF.forEach(k=>e[k]=String(x[k]||'').trim());mon(e.fd.slice(0,7)).entries.push(e)});
+  persist();const m=L[0].fd.slice(0,7);closeTour();
+  if(m!==cur)setMonth(m);else renderAll();toast(`Tour saved (${L.length} journeys)`)};
 
 /* ---------- helpers ---------- */
 const esc=s=>String(s??'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
