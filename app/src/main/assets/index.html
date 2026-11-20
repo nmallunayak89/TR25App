@@ -76,17 +76,8 @@ nav button.on{color:var(--red);font-weight:700}
   #print{display:block}
   html,body{width:auto!important;min-width:0!important}
 }
-#print{max-width:100%;overflow:hidden}
-#print table{table-layout:fixed;word-wrap:break-word;overflow-wrap:anywhere}
-#print table.jt th,#print table.jt td{font-size:8pt;padding:2px}
-#print h3{text-align:center;margin:2px 0;font-size:13pt}
-#print .c{text-align:center}
-#print td.c{white-space:nowrap}
-#print .r{text-align:right}
-#print table{width:100%;border-collapse:collapse;margin:6px 0}
-#print th,#print td{border:1px solid #000;padding:3px 4px;font-size:9.5pt;vertical-align:top}
-#print .kv td,#print .nb td{border:none;padding:2px 4px;font-size:10.5pt}
-#print .cert{font-size:10pt;margin:4px 0}
+#print{max-width:100%;overflow:hidden;background:#fff}
+#print table{table-layout:fixed}
 </style>
 </head>
 <body>
@@ -208,10 +199,13 @@ nav button.on{color:var(--red);font-weight:700}
     <div class="card">
       <h2>Bill details for this month</h2>
       <div class="grid">
+        <div><label>Sub-Bill No.</label><input id="b_subbill"></div>
+        <div><label>Actual expenses (₹)</label><input id="b_oth" type="number" inputmode="decimal"></div>
+        <div class="full"><label>Details of actual expenses</label><input id="b_othd"></div>
         <div><label>TA advance drawn (₹)</label><input id="b_adv" type="number" inputmode="decimal"></div>
-        <div><label>Other charges (₹)</label><input id="b_oth" type="number" inputmode="decimal"></div>
-        <div class="full"><label>Details of other charges</label><input id="b_othd"></div>
-        <div class="full"><label>Purpose of tour (overall)</label><input id="b_purpose" placeholder="Inspection of POs / BOs"></div>
+        <div><label>Advance voucher No.</label><input id="b_vno"></div>
+        <div><label>Advance voucher date</label><input id="b_vdate" type="date"></div>
+        <div class="full"><label>Expenditure debitable to</label><input id="b_debit" placeholder="Head of account"></div>
       </div>
     </div>
     <div class="card">
@@ -283,7 +277,7 @@ nav button.on{color:var(--red);font-weight:700}
 {
 const $=id=>document.getElementById(id);
 const KEY='tr25_v2';
-const MODES=['Bus','Train','Own Bike (RMA)','Auto / Taxi','Departmental vehicle','On foot','Other'];
+const MODES=['Bus','Train','Air','Own Bike (RMA)','Auto / Taxi','Departmental vehicle','On foot','Other'];
 let S=null, cur='', editId=null;
 
 /* ---------- storage ---------- */
@@ -339,7 +333,7 @@ window.shiftMonth=d=>{const [y,m]=cur.split('-').map(Number);const x=new Date(y,
 
 /* ---------- profile & bill fields ---------- */
 const PF=['name','desig','level','pay','hq','office','darate','rma','rmacap'];
-const BF=['adv','oth','othd','purpose'];
+const BF=['subbill','oth','othd','adv','vno','vdate','debit'];
 function fillProfile(){PF.forEach(k=>$('p_'+k).value=S.profile[k]||'')}
 function fillBill(){const M=S.months[cur]||{};BF.forEach(k=>$('b_'+k).value=M[k]||'')}
 PF.forEach(k=>$('p_'+k).addEventListener('input',e=>{S.profile[k]=e.target.value;persist();renderAll()}));
@@ -543,7 +537,7 @@ function renderAll(){
   <tr><td>1. Fare (bus / train / others – actuals)</td><td>${rs(t.fare)}</td></tr>
   <tr><td>2. RMA own bike: ${t.km} km × ₹${num(S.profile.rma)}${t.capped?' (capped)':''}</td><td>${rs(t.rma)}</td></tr>
   <tr><td>3. Daily Allowance (${t.da.length} day${t.da.length==1?'':'s'})</td><td>${rs(t.daAmt)}</td></tr>
-  <tr><td>4. Other charges</td><td>${rs(t.oth)}</td></tr>
+  <tr><td>4. Actual expenses</td><td>${rs(t.oth)}</td></tr>
   <tr class="tot"><td>Gross claim</td><td>${rs(t.gross)}</td></tr>
   <tr><td>Less: TA advance</td><td>${rs(t.adv)}</td></tr>
   <tr class="tot"><td>Net amount claimed</td><td>${rs(t.net)}</td></tr>`;
@@ -563,67 +557,178 @@ function words(n){
 }
 
 /* ---------- bill document (print + Word) ---------- */
-function billHTML(){
+/* ---------- TR-25-A / G.A.R.-14-A (English) + calculation sheet ---------- */
+const TB='border="1" cellspacing="0" cellpadding="3" width="100%" style="border-collapse:collapse;width:100%;table-layout:fixed"';
+const NB='border="0" cellspacing="0" cellpadding="2" width="100%" style="border-collapse:collapse;width:100%"';
+const PB='<p style="page-break-before:always;margin:0;line-height:1pt;font-size:1pt">&nbsp;</p>';
+const D='.............................................';
+const hm=h=>{const m=Math.round(h*60);return `${Math.floor(m/60)} h ${String(m%60).padStart(2,'0')} m`};
+const tm=d=>d.toTimeString().slice(0,5);
+const f2=n=>n.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+const RS=n=>Math.floor(n+1e-9).toLocaleString('en-IN'), PS=n=>String(Math.round((n-Math.floor(n+1e-9))*100)).padStart(2,'0');
+function daGroups(t){const rate=num(S.profile.darate),g={};
+  t.da.forEach(x=>{const k=x.pct;g[k]=g[k]||{pct:k,n:0,per:rate*k/100,amt:0};g[k].n++;g[k].amt+=x.amt});
+  return [100,70,30].filter(k=>g[k]).map(k=>g[k])}
+function billHTML(word){
   const t=totals(),P=S.profile,M=t.M,v=x=>esc(x||'');
-  const rows=t.L.map((l,i)=>`<tr><td class="c">${i+1}</td><td>${esc(l.fs)}</td><td class="c">${fmtD(l.fd)}</td><td class="c">${l.ft}</td>
-    <td>${esc(l.ts)}</td><td class="c">${fmtD(l.td)}</td><td class="c">${l.tt}</td><td>${esc(l.mode)}</td><td>${esc(l.cls)}</td>
-    <td class="r">${isBike(l)?'—':num(l.fare).toFixed(2)}</td><td class="r">${l.km||''}</td><td>${esc(l.purp)}</td><td>${esc(l.rem)}</td></tr>`).join('');
-  const darows=t.da.map((x,i)=>`<tr><td class="c">${i+1}</td><td class="c">${fmtD(x.d)}</td><td class="c">${x.t.join(', ')}</td><td class="c">${x.h.toFixed(1)}</td><td class="c">${x.pct}%</td><td class="r">${x.amt.toFixed(2)}</td></tr>`).join('')||'<tr><td colspan="6" class="c">Nil</td></tr>';
+  const has=re=>t.L.some(l=>re.test(l.mode));
+  // halt at each place within a tour
+  const halt={};t.T.forEach(T=>T.legs.forEach((l,j)=>{const nx=T.legs[j+1];if(nx){const h=(dt(nx.fd,nx.ft)-dt(l.td,l.tt))/36e5;if(h>0)halt[l.id]=h}}));
+  const sd=d=>d?d.split('-').reverse().join('-').replace(/-20(\d\d)$/,'-$1'):'';
+  const rows=t.L.map(l=>{const h=halt[l.id],f=isBike(l)?0:num(l.fare);
+    return `<tr><td class="c">${sd(l.fd)}</td><td class="c">${l.ft}</td><td>${esc(l.fs)}</td><td class="c">${sd(l.td)}</td><td class="c">${l.tt}</td><td>${esc(l.ts)}</td>
+    <td>${esc(l.mode)}${l.cls&&!isBike(l)?', '+esc(l.cls):''}</td><td class="r">${f?RS(f):''}</td><td class="r">${f?PS(f):''}</td><td class="r">${isBike(l)&&l.km?esc(l.km):''}</td>
+    <td class="c">${h?Math.floor(h/24)||'':''}</td><td class="c">${h?hm(h%24).replace(' h ',':').replace(' m',''):''}</td><td>${esc(l.purp)}${l.rem?' ('+esc(l.rem)+')':''}</td></tr>`}).join('');
+  const blank=n=>Array(Math.max(0,n)).fill('<tr>'+'<td>&nbsp;</td>'.repeat(13)+'</tr>').join('');
+  const roadModes=[...new Set(t.L.map(l=>l.mode))].filter(m=>!/Train|Air/.test(m)).map(m=>({'Bus':'Single seat in bus / public conveyance','Own Bike (RMA)':'Own motor cycle (road mileage claimed)','Auto / Taxi':'Auto / taxi','Departmental vehicle':'Government transport'}[m]||m)).join('; ')||'N.A.';
+  const yn=(c,x)=>c?(x||'Yes / No'):'N.A.';
+  const nilRows=(cols,n)=>(n=word?Math.min(n,2):n,0)||`<tr><td class="c">Nil</td>${'<td>&nbsp;</td>'.repeat(cols-1)}</tr>`+Array(n).fill('<tr>'+'<td>&nbsp;</td>'.repeat(cols)+'</tr>').join('');
+  const G=daGroups(t),roman=['i','ii','iii','iv'];
+  const amt=(a,b=true)=>`<td class="r">${b?RS(a):''}</td><td class="r">${b?PS(a):''}</td>`;
   return `
-  <p class="r" style="font-size:9pt;margin:0">T.R. 25-A / G.A.R. 14-A</p>
-  <h3>DEPARTMENT OF POSTS, INDIA</h3>
-  <h3>TRAVELLING ALLOWANCE BILL FOR TOUR</h3>
-  <p class="c" style="font-size:10pt;margin:0">For the month of ${mname(cur)}</p>
-  <h3 style="margin-top:8px">PART A</h3>
-  <table class="kv">
-   <tr><td style="width:38%">1. Name of the Officer</td><td>: ${v(P.name)}</td></tr>
-   <tr><td>2. Designation</td><td>: ${v(P.desig)}</td></tr>
-   <tr><td>3. Pay Level / Basic Pay</td><td>: ${v(P.level)}${P.pay?' / ₹ '+v(P.pay):''}</td></tr>
-   <tr><td>4. Headquarters</td><td>: ${v(P.hq)}</td></tr>
-   <tr><td>5. Office</td><td>: ${v(P.office)}</td></tr>
-   <tr><td>6. Purpose of tour</td><td>: ${v(M.purpose)}</td></tr>
-  </table>
-  <table class="jt">
-   <colgroup><col style="width:4%"><col style="width:11%"><col style="width:9%"><col style="width:6%"><col style="width:11%"><col style="width:9%"><col style="width:6%"><col style="width:8%"><col style="width:7%"><col style="width:6%"><col style="width:5%"><col style="width:9%"><col style="width:9%"></colgroup>
-   <tr><th rowspan="2">Sl</th><th colspan="3">Departure</th><th colspan="3">Arrival</th><th rowspan="2">Mode of travel</th><th rowspan="2">Class</th><th rowspan="2">Fare paid (₹)</th><th rowspan="2">Dist. (km)</th><th rowspan="2">Purpose</th><th rowspan="2">Remarks</th></tr>
-   <tr><th>Station</th><th>Date</th><th>Hour</th><th>Station</th><th>Date</th><th>Hour</th></tr>
-   ${rows||'<tr><td colspan="13" class="c">—</td></tr>'}
-  </table>
-  <h3 style="margin-top:8px">PART B – CALCULATION OF CLAIM</h3>
-  <table>
-   <tr><th style="width:70%">Particulars</th><th>Amount (₹)</th></tr>
-   <tr><td>1. Fare by bus / train / other conveyance (actuals)</td><td class="r">${t.fare.toFixed(2)}</td></tr>
-   <tr><td>2. Road Mileage Allowance (own bike): ${t.km} km × ₹ ${num(P.rma)}/km${t.capped?' (limited to '+num(P.rmacap)+' km per day)':''}</td><td class="r">${t.rma.toFixed(2)}</td></tr>
-   <tr><td>3. Daily Allowance @ ₹ ${num(P.darate)} per day (details below)</td><td class="r">${t.daAmt.toFixed(2)}</td></tr>
-   <tr><td>4. Other admissible charges ${M.othd?'('+v(M.othd)+')':''}</td><td class="r">${t.oth.toFixed(2)}</td></tr>
-   <tr><td><b>Gross total</b></td><td class="r"><b>${t.gross.toFixed(2)}</b></td></tr>
-   <tr><td>Less: TA advance drawn</td><td class="r">${t.adv.toFixed(2)}</td></tr>
-   <tr><td><b>Net amount claimed</b></td><td class="r"><b>${t.net.toFixed(2)}</b></td></tr>
-  </table>
-  <p class="cert">(${words(t.net)})</p>
-  <p class="cert"><b>Tour-wise absence from Headquarters</b></p>
-  <table>
-   <tr><th>Tour</th><th>Left HQ (date &amp; time)</th><th>Returned to HQ (date &amp; time)</th><th>Journeys</th><th>Hours</th><th>DA (₹)</th></tr>
-   ${t.T.map(T=>`<tr><td class="c">${T.no}</td><td class="c">${fmtD(dkey(T.start))} ${T.start.toTimeString().slice(0,5)}</td><td class="c">${T.ok?fmtD(dkey(T.end))+' '+T.end.toTimeString().slice(0,5):'Not returned'}</td><td class="c">${T.legs.length}</td><td class="c">${T.h.toFixed(1)}</td><td class="r">${t.da.filter(x=>x.t.includes(T.no)).reduce((a,x)=>a+x.amt,0).toFixed(2)}</td></tr>`).join('')||'<tr><td colspan="6" class="c">Nil</td></tr>'}
-  </table>
-  <table style="width:70%">
-   <tr><th>Sl</th><th>Date</th><th>Tour</th><th>Hours absent from HQ</th><th>DA %</th><th>Amount (₹)</th></tr>${darows}
-  </table>
-  <p class="cert" style="font-size:9pt">DA rule: absence up to 6 hours – 30%; 6 to 12 hours – 70%; above 12 hours – 100% of the daily rate, per calendar day.</p>
-  <p class="cert"><b>Certificates</b></p>
-  <p class="cert">1. Certified that the journeys were performed on duty and the claims are in accordance with the rules.</p>
-  <p class="cert">2. Certified that I did not avail free boarding/lodging or a Government/free conveyance for the journeys claimed, except as stated.</p>
-  <p class="cert">3. Certified that the fare claimed has actually been paid and the class of travel is within entitlement.</p>
-  <p class="cert">4. Certified that the road mileage claimed for own conveyance relates to the shortest route.</p>
-  <br><table class="nb"><tr><td>Station: ${v(P.hq)}<br>Date:</td><td class="r"><br><br>Signature of the Officer<br>${v(P.name)}<br>${v(P.desig)}</td></tr></table>
-  <hr style="border:none;border-top:1px dashed #000">
-  <p><b>FOR USE IN THE CONTROLLING / DRAWING OFFICE</b></p>
-  <p class="cert">Countersigned. Passed for payment of ₹ ............................ (Rupees ........................................................................ only).</p>
-  <table class="nb"><tr><td>Date:</td><td class="r"><br><br>Controlling Officer</td></tr></table>`;
+<!-- ================= PAGE 1 ================= -->
+<table ${NB}><tr><td style="width:50%">Sub-Bill No. ${v(M.subbill)||'..............'}</td><td class="r">G.A.R.-14-A<br>T.R.-25-A</td></tr></table>
+<h2 class="c" style="font-size:15pt;margin:4pt 0">TRAVELLING ALLOWANCE BILL FOR TOUR</h2>
+<p class="c" style="font-size:9.5pt">Note – This bill should be prepared in duplicate, one for payment and the other as office copy.</p>
+<p class="c"><b>PART – A</b> (To be filled up by Government Servant)</p>
+<table ${NB}>
+ <tr><td style="width:5%">1.</td><td style="width:30%">Name</td><td>: ${v(P.name)}</td></tr>
+ <tr><td>2.</td><td>Designation</td><td>: ${v(P.desig)}</td></tr>
+ <tr><td>3.</td><td>Pay</td><td>: ${P.pay?'Rs. '+v(P.pay):''}${P.level?' ('+v(P.level)+')':''}</td></tr>
+ <tr><td>4.</td><td>Head Quarters</td><td>: ${v(P.hq)}</td></tr>
+ <tr><td>5.</td><td colspan="2">Details and purpose of journey(s) performed :–</td></tr>
+</table>
+<table class="jt" ${TB}>
+ <colgroup><col width="8%"><col width="6%"><col width="12%"><col width="8%"><col width="6%"><col width="12%"><col width="10%"><col width="6%"><col width="4%"><col width="7%"><col width="4%"><col width="5%"><col width="12%"></colgroup>
+ <tr><th colspan="3">Departure</th><th colspan="3">Arrival</th><th rowspan="2" width="10%" style="width:10%">Mode of travel and class of accommodation</th><th colspan="2">Fare Paid</th><th rowspan="2" width="7%" style="width:7%">Distance in Kms. for road mileage</th><th colspan="2">Duration of halt</th><th rowspan="2" width="12%" style="width:12%">Purpose of Journey</th></tr>
+ <tr>${[['Date',8],['Time',6],['From',12],['Date',8],['Time',6],['To',12],['Rs.',6],['Ps.',4],['Days',4],['Hours',5]].map(([n,w])=>`<th width="${w}%" style="width:${w}%">${n}</th>`).join('')}</tr>
+ ${rows}${blank((word?9:16)-t.L.length)}
+</table>
+<p class="c" style="margin-top:6pt">1</p>
+
+<!-- ================= PAGE 2 ================= -->
+${PB}<p class="c">2</p>
+<table ${NB}>
+ <tr><td style="width:6%">6.</td><td colspan="2"><b>Mode of Journey :</b></td></tr>
+ <tr><td>(i)</td><td colspan="2"><b>Air</b></td></tr>
+ <tr><td></td><td style="width:62%">a) Exchange voucher arranged by office</td><td>: ${yn(has(/Air/))}</td></tr>
+ <tr><td></td><td>b) Ticket / Exchange voucher arranged by</td><td>: ${has(/Air/)?D:'N.A.'}</td></tr>
+ <tr><td>(ii)</td><td colspan="2"><b>Rail</b></td></tr>
+ <tr><td></td><td>a) Whether travelled by mail / express / ordinary train?</td><td>: ${has(/Train/)?D:'N.A.'}</td></tr>
+ <tr><td></td><td>b) Whether return tickets available?</td><td>: ${yn(has(/Train/))}</td></tr>
+ <tr><td></td><td>c) If available, whether return tickets purchased? If not, state reasons.</td><td>: ${has(/Train/)?D:'N.A.'}</td></tr>
+ <tr><td>(iii)</td><td colspan="2"><b>Road</b></td></tr>
+ <tr><td></td><td>Mode of conveyance used i.e., by Govt. transport / by taking a taxi, a single seat in a bus or other public conveyance / by sharing with another Govt. Servant in a car belonging to him or to a third person to be specified.</td><td>: ${esc(roadModes)}</td></tr>
+ <tr><td>7.</td><td colspan="2"><b>Dates of absence from place of halt on account of :–</b></td></tr>
+ <tr><td></td><td>a) R.H. and C.L.</td><td>: Nil</td></tr>
+ <tr><td></td><td>b) Not being actually in camp on Sundays and holidays.</td><td>: Nil</td></tr>
+ <tr><td>8.</td><td colspan="2"><b>Dates on which free board and / or lodging provided by the State or any organisation financed by State funds :–</b></td></tr>
+ <tr><td></td><td>a) Board only</td><td>: Nil</td></tr>
+ <tr><td></td><td>b) Lodging only</td><td>: Nil</td></tr>
+ <tr><td></td><td>c) Board and Lodging</td><td>: Nil</td></tr>
+ <tr><td>9.</td><td colspan="2"><b>Particulars to be furnished along with hotel receipts etc., in cases where higher rate of D.A. is claimed for stay in hotel / other establishments providing board and / or lodging at scheduled tariff :–</b></td></tr>
+</table>
+<table ${TB}>
+ <tr><th colspan="2">Period of stay</th><th rowspan="2">Name of the hotel</th><th rowspan="2">Daily rate of lodging charged (Rs.)</th><th rowspan="2">Total amount paid (Rs.)</th></tr>
+ <tr><th>From</th><th>To</th></tr>
+ ${nilRows(5,4)}
+</table>
+
+<!-- ================= PAGE 3 ================= -->
+${PB}<p class="c">3</p>
+<table ${NB}><tr><td style="width:6%">10.</td><td><b>Particulars of journey(s) for which higher class of accommodation than the one to which the Govt. servant is entitled was used :–</b></td></tr></table>
+<table ${TB}>
+ <tr><th rowspan="2">Date</th><th colspan="2">Names of Places</th><th rowspan="2">Mode of conveyance used</th><th rowspan="2">Class to which entitled</th><th rowspan="2">Class by which travelled</th><th rowspan="2">Fare of the entitled class (Rs.)</th></tr>
+ <tr><th>From</th><th>To</th></tr>
+ ${nilRows(7,4)}
+</table>
+<p style="font-size:9.5pt">If the journey(s) by higher class of accommodation has been performed with the approval of the competent authority, No. and date of the sanction may be quoted.</p>
+<table ${NB}><tr><td style="width:6%">11.</td><td><b>Details of journey(s) performed by road between places connected by rail :–</b></td></tr></table>
+<table ${TB}>
+ <tr><th rowspan="2">Date</th><th colspan="2">Names of Places</th><th rowspan="2">Fare Paid (Rs.)</th><th rowspan="2">Remarks</th></tr>
+ <tr><th>From</th><th>To</th></tr>
+ ${nilRows(5,4)}
+</table>
+<table ${NB} style="margin-top:10pt">
+ <tr><td style="width:6%">12.</td><td>Amount of T.A. advance, if any, drawn</td><td class="r" style="width:30%">Rs. ${t.adv?f2(t.adv):'Nil'}</td></tr>
+ <tr><td></td><td colspan="2">Certified that the information, as given above, is true to the best of my knowledge and belief.</td></tr>
+</table>
+<br><br>
+<table ${NB}><tr><td>Date : ................................</td><td class="r">................................................<br>Signature of the Government Servant<br>${v(P.name)}, ${v(P.desig)}</td></tr></table>
+
+<!-- ================= PAGE 4 ================= -->
+${PB}<p class="c">4</p>
+<p class="c"><b>PART – B</b> (To be filled in by the Bill Section)</p>
+<table ${TB}>
+ <colgroup><col width="6%"><col width="74%"><col width="13%"><col width="7%"></colgroup>
+ <tr><td>1.</td><td>The net entitlement on account of travelling allowance works out to <b>Rs. ${f2(t.net)}</b> as detailed below :–</td><th>Rs.</th><th>P.</th></tr>
+ <tr><td>a)</td><td>Railways / Air / Bus / Steamer fare :</td>${amt(t.fare)}</tr>
+ <tr><td>b)</td><td>Road mileage for <b>${t.km}</b> Kms @ Rs. <b>${f2(num(P.rma))}</b> Per / Km.${t.capped?' (limited to '+num(P.rmacap)+' km per day)':''}</td>${amt(t.rma)}</tr>
+ <tr><td>c)</td><td>Daily allowance :</td><td></td><td></td></tr>
+ ${[0,1,2,3].map(i=>{const g=G[i];return `<tr><td class="r">${roman[i]})</td><td>${g?`<b>${g.n}</b> day${g.n>1?'s':''} @ Rs. <b>${f2(g.per)}</b> per day (${g.pct}% of Rs. ${f2(num(P.darate))})`:'........ days @ Rs. ........ per day'}</td>${amt(g?g.amt:0,!!g)}</tr>`}).join('')}
+ <tr><td>d)</td><td>Actual Expenses : ${M.othd?'('+v(M.othd)+')':''}</td>${amt(t.oth,t.oth>0)}</tr>
+ <tr><td></td><td class="r"><b>Gross Amount</b></td><td class="r"><b>${RS(t.gross)}</b></td><td class="r"><b>${PS(t.gross)}</b></td></tr>
+ <tr><td>e)</td><td>Less amount of T.A. advance, if any, drawn vide voucher No. ${v(M.vno)||'..........'} date ${M.vdate?fmtD(M.vdate):'..........'}</td>${amt(t.adv,t.adv>0)}</tr>
+ <tr><td></td><td class="r"><b>Net Amount</b></td><td class="r"><b>${RS(t.net)}</b></td><td class="r"><b>${PS(t.net)}</b></td></tr>
+</table>
+<p>(${words(t.net)})</p>
+<table ${NB}><tr><td style="width:6%">2.</td><td>The expenditure is debitable to ${v(M.debit)||D}</td></tr></table>
+<br><br><br>
+<table ${NB}>
+ <tr><td style="width:50%;vertical-align:bottom">Initials of Bill Clerk.</td><td class="r">................................................<br>Signature of Drawing &amp; Disbursing Officer</td></tr>
+ <tr><td colspan="2" class="r"><br><br>Countersigned<br><br><br>................................................<br>Signature of the Controlling Officer</td></tr>
+</table>
+
+<!-- ================= PAGE 5: CALCULATION SHEET ================= -->
+${PB}${calcSheet(t)}`;
 }
+
+function calcSheet(t){
+  const P=S.profile,rate=num(P.darate),v=x=>esc(x||'');
+  let h=`<h2 class="c" style="font-size:14pt;margin:0">CALCULATION SHEET</h2>
+  <p class="c">T.A. Bill for Tour – ${mname(cur)}<br>${v(P.name)}, ${v(P.desig)}, HQ: ${v(P.hq)}</p><hr>`;
+  // 1. DA
+  h+=`<p><b>1. Daily Allowance</b> – DA rate Rs. ${f2(rate)} per day. Absence from HQ per calendar day: up to 6 h = 30%, 6 to 12 h = 70%, above 12 h = 100%.</p>`;
+  t.T.forEach(T=>{
+    const route=[T.legs[0].fs].concat(T.legs.map(l=>l.ts)).map(esc).join(' → ');
+    h+=`<p style="margin-left:14pt"><b>Tour ${T.no}:</b> ${route}<br>Left HQ ${fmtD(dkey(T.start))} at ${tm(T.start)}, ${T.ok?`reached HQ ${fmtD(dkey(T.end))} at ${tm(T.end)}`:`<b>return to HQ not entered</b> (taken up to ${fmtD(dkey(T.end))} ${tm(T.end)})`} = ${hm(T.h)} away.</p>`;
+    let c=new Date(T.start);
+    while(c<T.end){const mid=new Date(c);mid.setHours(24,0,0,0);const e=T.end<mid?T.end:mid;const k=dkey(c);const d=t.da.find(x=>x.d===k);
+      const segH=(e-c)/36e5,multi=d&&d.t.length>1;
+      h+=`<p style="margin-left:28pt">${fmtD(k)}: ${tm(c)} to ${e.getTime()===mid.getTime()?'24:00':tm(e)} = ${hm(segH)}${multi?` (with other tour on this day, total ${hm(d.h)})`:''} → ${d.pct}% × Rs. ${f2(rate)} = <b>Rs. ${f2(d.amt)}</b>${multi&&d.t[0]!==T.no?' (already counted above)':''}</p>`;
+      c=e}
+  });
+  h+=`<p style="margin-left:14pt">Total DA = ${t.da.map(x=>f2(x.amt)).join(' + ')||'0'} = <b>Rs. ${f2(t.daAmt)}</b></p>`;
+  // 2. Fare
+  const fl=t.L.filter(l=>!isBike(l)&&num(l.fare)>0);
+  h+=`<p><b>2. Fare paid</b> (bus / train / other conveyance, actuals)</p>`;
+  h+=fl.length?`<p style="margin-left:14pt">${fl.map(l=>`${fmtD(l.fd)} ${esc(l.fs)} → ${esc(l.ts)} (${esc(l.mode)}) Rs. ${f2(num(l.fare))}`).join('<br>')}</p><p style="margin-left:14pt">Total fare = ${fl.map(l=>f2(num(l.fare))).join(' + ')} = <b>Rs. ${f2(t.fare)}</b></p>`:`<p style="margin-left:14pt">Nil</p>`;
+  // 3. RMA
+  const cap=num(P.rmacap)||Infinity,byDay={};t.L.filter(isBike).forEach(l=>(byDay[l.fd]=byDay[l.fd]||[]).push(num(l.km)));
+  h+=`<p><b>3. Road Mileage Allowance</b> (own motor cycle) – Rs. ${f2(num(P.rma))} per km${isFinite(cap)?`, limited to ${cap} km per day`:''}</p>`;
+  const dk=Object.keys(byDay).sort();
+  h+=dk.length?`<p style="margin-left:14pt">${dk.map(d=>{const s=byDay[d].reduce((a,b)=>a+b,0);return `${fmtD(d)}: ${byDay[d].join(' + ')} = ${s} km${s>cap?` → limited to ${cap} km`:''}`}).join('<br>')}</p>
+   <p style="margin-left:14pt">Total ${t.km} km × Rs. ${f2(num(P.rma))} = <b>Rs. ${f2(t.rma)}</b></p>`:`<p style="margin-left:14pt">Nil</p>`;
+  // 4. Actual
+  h+=`<p><b>4. Actual expenses</b>${t.M.othd?' ('+v(t.M.othd)+')':''} = <b>Rs. ${f2(t.oth)}</b></p>`;
+  // 5. Summary
+  h+=`<hr><p><b>5. Claim</b></p>
+  <p style="margin-left:14pt">Gross = Fare ${f2(t.fare)} + RMA ${f2(t.rma)} + DA ${f2(t.daAmt)} + Actual ${f2(t.oth)} = <b>Rs. ${f2(t.gross)}</b><br>
+  Less T.A. advance = Rs. ${f2(t.adv)}<br>
+  Net amount = ${f2(t.gross)} − ${f2(t.adv)} = <b>Rs. ${f2(t.net)}</b><br>(${words(t.net)})</p>
+  <br><br><table ${NB}><tr><td>Date :</td><td class="r">Signature of the Government Servant</td></tr></table>`;
+  return h;
+}
+const BILLCSS=p=>`${p}{font-family:"Times New Roman",serif;font-size:10.5pt;color:#000}
+${p} p{margin:2pt 0;line-height:1.15}${p} h2{font-family:"Times New Roman",serif}
+${p} .c{text-align:center}${p} .r{text-align:right}
+${p} th{font-size:8.5pt;font-weight:bold;text-align:center;vertical-align:middle}
+${p} td{font-size:9.5pt;vertical-align:top;word-wrap:break-word}
+${p} table.jt td{font-size:8pt}${p} table.jt th{font-size:7.5pt}`;
 window.doPrint=()=>{if(!entries().length)return toast('No entries this month');
-  $('print').innerHTML=billHTML();
+  $('print').innerHTML=`<style>${BILLCSS('#print')}</style>`+billHTML();
   if(window.Android&&Android.print)Android.print();else window.print()};
+
 
 function saveFile(name,mime,text){
   if(window.Android&&Android.saveFile){Android.saveFile(name,mime,text);return}
@@ -634,12 +739,9 @@ window.exportWord=()=>{if(!entries().length)return toast('No entries this month'
   const doc=`﻿<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
 <head><meta charset="utf-8"><title>TR-25A ${mname(cur)}</title>
 <!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->
-<style>@page Section1{size:595.3pt 841.9pt;margin:36pt 30pt 36pt 30pt}div.Section1{page:Section1}
-body{font-family:"Times New Roman";font-size:11pt}h3{text-align:center;margin:2pt 0;font-size:13pt}
-.c{text-align:center}.r{text-align:right}p{margin:3pt 0}
-table{width:100%;border-collapse:collapse;margin:4pt 0}th,td{border:1px solid #000;padding:2pt 3pt;font-size:9pt;vertical-align:top}
-table.kv td,table.nb td{border:none;font-size:10.5pt}.cert{font-size:10pt}</style></head>
-<body><div class="Section1">${billHTML().replace(/<table>/g,'<table border="1" cellspacing="0" cellpadding="3">').replace(/<table class="jt">/g,'<table class="jt" border="1" cellspacing="0" cellpadding="2">').replace(/<table style="width:70%">/g,'<table border="1" cellspacing="0" cellpadding="3" style="width:70%">')}</div></body></html>`;
+<style>@page Section1{size:595.3pt 841.9pt;margin:30pt 28pt 30pt 28pt}div.Section1{page:Section1}
+${BILLCSS('body')}</style></head>
+<body><div class="Section1">${billHTML(true).split(PB).join('<br clear=all style="mso-special-character:line-break;page-break-before:always">')}</div></body></html>`;
   saveFile(fname('doc'),'application/msword',doc)};
 window.exportCSV=()=>{if(!entries().length)return toast('No entries this month');
   const q=s=>'"'+String(s??'').replace(/"/g,'""')+'"';
