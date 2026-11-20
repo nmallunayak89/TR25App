@@ -17,6 +17,7 @@ main{max-width:760px;margin:0 auto;padding:10px 12px 110px}
 .card h2{font-size:14px;margin:0 0 10px;color:var(--red);text-transform:uppercase;letter-spacing:.5px}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .grid .full{grid-column:1/-1}
+.grid>*{min-width:0}
 label{display:block;font-size:12px;color:var(--mute);margin-bottom:3px}
 input,select,textarea{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:16px;background:#fff;color:var(--ink)}
 input:focus,select:focus,textarea:focus{outline:2px solid #f2b8c0;border-color:var(--red)}
@@ -33,6 +34,11 @@ button{font:inherit;border:0;border-radius:8px;padding:11px 14px;cursor:pointer;
 .leg .no{font-weight:700;font-size:13px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;color:var(--red)}
 .leg .no button{min-height:34px;padding:4px 10px;font-size:13px}
 input[readonly]{background:#f3f3f5}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:12px 0 4px;scrollbar-width:none}
+.chips button{flex:none;border:1px solid var(--line);background:#fff;border-radius:20px;padding:8px 14px;min-height:40px;font-size:14px;color:var(--ink)}
+.chips button.on{background:var(--red);color:#fff;border-color:var(--red);font-weight:600}
+.rowc{border:1px solid var(--line);border-radius:10px;padding:10px;margin:8px 0;background:#fffdfd}
+.ro{background:#faf7f7;border-radius:8px;padding:10px;font-size:14px;line-height:1.6}
 .note{font-size:12px;color:var(--mute);margin-top:6px}
 .err{color:var(--red);font-size:13px;min-height:18px;margin-top:6px}
 .hide{display:none!important}
@@ -196,34 +202,23 @@ nav button.on{color:var(--red);font-weight:700}
 
   <!-- BILL -->
   <section id="tab_bill" class="hide">
-    <div class="card">
-      <h2>Bill details for this month</h2>
-      <div class="grid">
-        <div><label>Sub-Bill No.</label><input id="b_subbill"></div>
-        <div><label>DA amount (₹) – manual</label><input id="b_daman" type="number" inputmode="decimal" placeholder="Auto"></div>
-        <div><label>RMA amount (₹) – manual</label><input id="b_rmaman" type="number" inputmode="decimal" placeholder="Auto"></div>
-        <div class="full note" style="margin-top:-4px">Leave DA / RMA blank to calculate automatically from the tour diary.</div>
-        <div><label>Actual expenses (₹)</label><input id="b_oth" type="number" inputmode="decimal"></div>
-        <div class="full"><label>Details of actual expenses</label><input id="b_othd"></div>
-        <div><label>TA advance drawn (₹)</label><input id="b_adv" type="number" inputmode="decimal"></div>
-        <div><label>Advance voucher No.</label><input id="b_vno"></div>
-        <div><label>Advance voucher date</label><input id="b_vdate" type="date"></div>
-        <div class="full"><label>Expenditure debitable to</label><input id="b_debit" placeholder="Head of account"></div>
+    <div class="chips" id="ftabs"></div>
+    <div id="fbody"></div>
+    <div id="claimbox">
+      <div class="card">
+        <h2>Calculation of claim</h2>
+        <table class="sum" id="sum"></table>
+        <div id="dadetail" class="note"></div>
       </div>
-    </div>
-    <div class="card">
-      <h2>Part B – Calculation</h2>
-      <table class="sum" id="sum"></table>
-      <div id="dadetail" class="note"></div>
-    </div>
-    <div class="card">
-      <h2>Export</h2>
-      <div class="row">
-        <button class="btn" onclick="doPrint()">Print / Save PDF</button>
-        <button class="btn2" onclick="exportWord()">Word (.doc)</button>
-        <button class="btn2" onclick="exportCSV()">Excel (.csv)</button>
+      <div class="card">
+        <h2>Export</h2>
+        <div class="row">
+          <button class="btn" onclick="doPrint()">Print / Save PDF</button>
+          <button class="btn2" onclick="exportWord()">Word (.doc)</button>
+          <button class="btn2" onclick="exportCSV()">Excel (.csv)</button>
+        </div>
+        <p class="note">The Word file opens in MS Word or WPS Office and can be edited. In the print screen, choose "Save as PDF".</p>
       </div>
-      <p class="note">The Word file opens in MS Word or WPS Office and can be edited. In the print screen, choose "Save as PDF".</p>
     </div>
   </section>
 
@@ -268,7 +263,7 @@ nav button.on{color:var(--red);font-weight:700}
 <button class="btn fab" id="fab" onclick="openTour()">+</button>
 <nav>
   <button id="n_diary" class="on" onclick="tab('diary')"><b>☰</b>Tour diary</button>
-  <button id="n_bill" onclick="tab('bill')"><b>₹</b>Bill</button>
+  <button id="n_bill" onclick="tab('bill')"><b>₹</b>TA Form</button>
   <button id="n_set" onclick="tab('set')"><b>⚙</b>Settings</button>
 </nav>
 </div>
@@ -336,11 +331,55 @@ window.shiftMonth=d=>{const [y,m]=cur.split('-').map(Number);const x=new Date(y,
 
 /* ---------- profile & bill fields ---------- */
 const PF=['name','desig','level','pay','hq','office','darate','rma','rmacap'];
-const BF=['subbill','daman','rmaman','oth','othd','adv','vno','vdate','debit'];
+const YN=['','Yes','No','N.A.'];
+const FORM=[
+ {id:'a',t:'Part A',h:'Part A – Government Servant',items:[{k:'subbill',l:'Sub-Bill No.'}],partA:true},
+ {id:'6',t:'6. Mode',h:'6. Mode of Journey',items:[
+   {k:'f6ia',l:'(i) Air – a) Exchange voucher arranged by office',o:YN},
+   {k:'f6ib',l:'(i) Air – b) Ticket / Exchange voucher arranged by',p:'N.A.'},
+   {k:'f6iia',l:'(ii) Rail – a) Whether travelled by mail / express / ordinary train?',o:['','Mail','Express','Ordinary','N.A.']},
+   {k:'f6iib',l:'(ii) Rail – b) Whether return tickets available?',o:YN},
+   {k:'f6iic',l:'(ii) Rail – c) If available, whether return tickets purchased? If not, state reasons',p:'N.A.'},
+   {k:'f6iii',l:'(iii) Road – Mode of conveyance used',p:'Auto: taken from tour diary'}]},
+ {id:'7',t:'7–8. Absence / Board',h:'7. Dates of absence from place of halt  ·  8. Free board / lodging',items:[
+   {k:'f7a',l:'7 a) R.H. and C.L.',p:'Nil'},{k:'f7b',l:'7 b) Not being actually in camp on Sundays and holidays',p:'Nil'},
+   {k:'f8a',l:'8 a) Board only',p:'Nil'},{k:'f8b',l:'8 b) Lodging only',p:'Nil'},{k:'f8c',l:'8 c) Board and Lodging',p:'Nil'}]},
+ {id:'9',t:'9. Hotel',h:'9. Stay in hotel (higher rate of DA claimed)',rows:'h9',cols:[['from','From','date'],['to','To','date'],['name','Name of the hotel'],['rate','Daily rate of lodging (₹)','number'],['amt','Total amount paid (₹)','number']]},
+ {id:'10',t:'10. Higher class',h:'10. Journeys in higher class than entitled',rows:'h10',cols:[['date','Date','date'],['from','From'],['to','To'],['mode','Mode of conveyance'],['ent','Class entitled'],['trav','Class travelled'],['fare','Fare of entitled class (₹)','number']],items:[{k:'f10s',l:'Sanction No. and date (if approved by competent authority)'}]},
+ {id:'11',t:'11. Road (rail route)',h:'11. Journeys by road between places connected by rail',rows:'r11',cols:[['date','Date','date'],['from','From'],['to','To'],['fare','Fare paid (₹)','number'],['rem','Remarks']]},
+ {id:'12',t:'12. Advance',h:'12. T.A. advance drawn',items:[{k:'adv',l:'Amount of T.A. advance (₹)',ty:'number',p:'Nil'},{k:'vno',l:'Voucher No.'},{k:'vdate',l:'Voucher date',ty:'date'}]},
+ {id:'c',t:'Claim',h:'Claim – amounts',items:[{k:'oth',l:'Actual expenses (₹)',ty:'number',p:'0'},{k:'othd',l:'Details of actual expenses'},
+   {k:'daman',l:'DA amount (₹) – manual',ty:'number',p:'Auto from tour diary'},{k:'rmaman',l:'RMA amount (₹) – manual',ty:'number',p:'Auto from tour diary'},
+   {k:'debit',l:'Expenditure debitable to',p:'Head of account'}],claim:true}];
+let ftab='a';
+window.ftabGo=id=>{ftab=id;renderForm();window.scrollTo(0,0)};
+function renderForm(){
+  const M=mon(cur),F=FORM.find(x=>x.id===ftab),P=S.profile;
+  $('ftabs').innerHTML=FORM.map(x=>`<button class="${x.id===ftab?'on':''}" onclick="ftabGo('${x.id}')">${x.t}</button>`).join('');
+  let h=`<div class="card"><h2>${F.h}</h2>`;
+  if(F.partA){const t=totals();h+=`<div class="ro">1. Name: <b>${esc(P.name)}</b><br>2. Designation: <b>${esc(P.desig)}</b><br>3. Pay: <b>${P.pay?'₹ '+esc(P.pay):'–'}${P.level?' ('+esc(P.level)+')':''}</b><br>4. Head Quarters: <b>${esc(P.hq)}</b><br>5. Journeys this month: <b>${t.L.length}</b> (from Tour diary)</div>
+    <div class="row" style="margin:10px 0"><button class="btnx" onclick="tab('set')">Edit officer details</button><button class="btnx" onclick="tab('diary')">Open Tour diary</button></div>`}
+  (F.items||[]).forEach(it=>{const v=esc(M[it.k]||'');
+    h+=`<div style="margin:10px 0"><label>${it.l}</label>${it.o?`<select data-f="${it.k}">${it.o.map(o=>`<option value="${o}" ${o===(M[it.k]||'')?'selected':''}>${o||'Auto (default)'}</option>`).join('')}</select>`
+      :`<input data-f="${it.k}" type="${it.ty||'text'}" ${it.ty==='number'?'inputmode="decimal"':''} value="${v}" placeholder="${it.p||''}">`}</div>`});
+  if(F.rows){const R=M[F.rows]=M[F.rows]||[];
+    h+=R.length?'':`<div class="ro">Nil – no entries. Tap "+ Add row" if applicable.</div>`;
+    R.forEach((r,i)=>{h+=`<div class="rowc"><div class="no" style="display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:13px;color:var(--red)">Row ${i+1}<button class="btnx" style="min-height:34px;padding:4px 10px" onclick="rmRow('${F.rows}',${i})">Remove</button></div><div class="grid">`+
+      F.cols.map(([k,l,ty])=>`<div><label>${l}</label><input data-r="${F.rows}" data-i="${i}" data-c="${k}" type="${ty||'text'}" ${ty==='number'?'inputmode="decimal"':''} value="${esc(r[k]||'')}"></div>`).join('')+`</div></div>`});
+    h+=`<button class="btn2" style="width:100%;margin-top:6px" onclick="addRow('${F.rows}')">+ Add row</button>`}
+  h+=`<p class="note">Blank fields print the default shown (Nil / N.A. / Auto).</p></div>`;
+  $('fbody').innerHTML=h;$('claimbox').classList.toggle('hide',!F.claim);
+}
+window.addRow=k=>{mon(cur)[k]=(mon(cur)[k]||[]);mon(cur)[k].push({});persist();renderForm()};
+window.rmRow=(k,i)=>{mon(cur)[k].splice(i,1);persist();renderForm()};
+$('fbody').addEventListener('input',e=>{const el=e.target,M=mon(cur);
+  if(el.dataset.f){M[el.dataset.f]=el.value}else if(el.dataset.r){M[el.dataset.r][+el.dataset.i][el.dataset.c]=el.value}else return;
+  persist();renderAll()});
+$('fbody').addEventListener('change',e=>{if(e.target.tagName==='SELECT'){mon(cur)[e.target.dataset.f]=e.target.value;persist();renderAll()}});
 function fillProfile(){PF.forEach(k=>$('p_'+k).value=S.profile[k]||'')}
-function fillBill(){const M=S.months[cur]||{};BF.forEach(k=>$('b_'+k).value=M[k]||'')}
+function fillBill(){renderForm()}
 PF.forEach(k=>$('p_'+k).addEventListener('input',e=>{S.profile[k]=e.target.value;persist();renderAll()}));
-BF.forEach(k=>$('b_'+k).addEventListener('input',e=>{mon(cur)[k]=e.target.value;persist();renderAll()}));
+
 
 /* ---------- entries ---------- */
 $('f_mode').innerHTML=MODES.map(m=>`<option>${m}</option>`).join('');
@@ -587,6 +626,10 @@ function billHTML(word){
   const blank=n=>Array(Math.max(0,n)).fill('<tr>'+'<td>&nbsp;</td>'.repeat(13)+'</tr>').join('');
   const roadModes=[...new Set(t.L.map(l=>l.mode))].filter(m=>!/Train|Air/.test(m)).map(m=>({'Bus':'Single seat in bus / public conveyance','Own Bike (RMA)':'Own motor cycle (road mileage claimed)','Auto / Taxi':'Auto / taxi','Departmental vehicle':'Government transport'}[m]||m)).join('; ')||'N.A.';
   const yn=(c,x)=>c?(x||'Yes / No'):'N.A.';
+  const F=(k,d)=>{const x=String(M[k]||'').trim();return x?esc(x):d};
+  const blankN=(c,n)=>Array(Math.max(0,n)).fill('<tr>'+'<td>&nbsp;</td>'.repeat(c)+'</tr>').join('');
+  const tRows=(k,cells,c)=>{const A=(M[k]||[]).filter(r=>Object.values(r).some(x=>String(x).trim()));
+    return A.length?A.map(r=>'<tr>'+cells(r).map(x=>`<td>${x}</td>`).join('')+'</tr>').join('')+blankN(c,(word?2:4)-A.length):nilRows(c,4)};
   const nilRows=(cols,n)=>(n=word?Math.min(n,2):n,0)||`<tr><td class="c">Nil</td>${'<td>&nbsp;</td>'.repeat(cols-1)}</tr>`+Array(n).fill('<tr>'+'<td>&nbsp;</td>'.repeat(cols)+'</tr>').join('');
   const G=daGroups(t),roman=['i','ii','iii','iv'];
   const amt=(a,b=true)=>`<td class="r">${b?RS(a):''}</td><td class="r">${b?PS(a):''}</td>`;
@@ -616,27 +659,27 @@ ${PB}<p class="c">2</p>
 <table ${NB}>
  <tr><td style="width:6%">6.</td><td colspan="2"><b>Mode of Journey :</b></td></tr>
  <tr><td>(i)</td><td colspan="2"><b>Air</b></td></tr>
- <tr><td></td><td style="width:62%">a) Exchange voucher arranged by office</td><td>: ${yn(has(/Air/))}</td></tr>
- <tr><td></td><td>b) Ticket / Exchange voucher arranged by</td><td>: ${has(/Air/)?D:'N.A.'}</td></tr>
+ <tr><td></td><td style="width:62%">a) Exchange voucher arranged by office</td><td>: ${F('f6ia',yn(has(/Air/)))}</td></tr>
+ <tr><td></td><td>b) Ticket / Exchange voucher arranged by</td><td>: ${F('f6ib',has(/Air/)?D:'N.A.')}</td></tr>
  <tr><td>(ii)</td><td colspan="2"><b>Rail</b></td></tr>
- <tr><td></td><td>a) Whether travelled by mail / express / ordinary train?</td><td>: ${has(/Train/)?D:'N.A.'}</td></tr>
- <tr><td></td><td>b) Whether return tickets available?</td><td>: ${yn(has(/Train/))}</td></tr>
- <tr><td></td><td>c) If available, whether return tickets purchased? If not, state reasons.</td><td>: ${has(/Train/)?D:'N.A.'}</td></tr>
+ <tr><td></td><td>a) Whether travelled by mail / express / ordinary train?</td><td>: ${F('f6iia',has(/Train/)?D:'N.A.')}</td></tr>
+ <tr><td></td><td>b) Whether return tickets available?</td><td>: ${F('f6iib',yn(has(/Train/)))}</td></tr>
+ <tr><td></td><td>c) If available, whether return tickets purchased? If not, state reasons.</td><td>: ${F('f6iic',has(/Train/)?D:'N.A.')}</td></tr>
  <tr><td>(iii)</td><td colspan="2"><b>Road</b></td></tr>
- <tr><td></td><td>Mode of conveyance used i.e., by Govt. transport / by taking a taxi, a single seat in a bus or other public conveyance / by sharing with another Govt. Servant in a car belonging to him or to a third person to be specified.</td><td>: ${esc(roadModes)}</td></tr>
+ <tr><td></td><td>Mode of conveyance used i.e., by Govt. transport / by taking a taxi, a single seat in a bus or other public conveyance / by sharing with another Govt. Servant in a car belonging to him or to a third person to be specified.</td><td>: ${F('f6iii',esc(roadModes))}</td></tr>
  <tr><td>7.</td><td colspan="2"><b>Dates of absence from place of halt on account of :–</b></td></tr>
- <tr><td></td><td>a) R.H. and C.L.</td><td>: Nil</td></tr>
- <tr><td></td><td>b) Not being actually in camp on Sundays and holidays.</td><td>: Nil</td></tr>
+ <tr><td></td><td>a) R.H. and C.L.</td><td>: ${F('f7a','Nil')}</td></tr>
+ <tr><td></td><td>b) Not being actually in camp on Sundays and holidays.</td><td>: ${F('f7b','Nil')}</td></tr>
  <tr><td>8.</td><td colspan="2"><b>Dates on which free board and / or lodging provided by the State or any organisation financed by State funds :–</b></td></tr>
- <tr><td></td><td>a) Board only</td><td>: Nil</td></tr>
- <tr><td></td><td>b) Lodging only</td><td>: Nil</td></tr>
- <tr><td></td><td>c) Board and Lodging</td><td>: Nil</td></tr>
+ <tr><td></td><td>a) Board only</td><td>: ${F('f8a','Nil')}</td></tr>
+ <tr><td></td><td>b) Lodging only</td><td>: ${F('f8b','Nil')}</td></tr>
+ <tr><td></td><td>c) Board and Lodging</td><td>: ${F('f8c','Nil')}</td></tr>
  <tr><td>9.</td><td colspan="2"><b>Particulars to be furnished along with hotel receipts etc., in cases where higher rate of D.A. is claimed for stay in hotel / other establishments providing board and / or lodging at scheduled tariff :–</b></td></tr>
 </table>
 <table ${TB}>
  <tr><th colspan="2">Period of stay</th><th rowspan="2">Name of the hotel</th><th rowspan="2">Daily rate of lodging charged (Rs.)</th><th rowspan="2">Total amount paid (Rs.)</th></tr>
  <tr><th>From</th><th>To</th></tr>
- ${nilRows(5,4)}
+ ${tRows('h9',r=>[fmtD(r.from),fmtD(r.to),esc(r.name),r.rate?f2(num(r.rate)):'',r.amt?f2(num(r.amt)):''],5)}
 </table>
 
 <!-- ================= PAGE 3 ================= -->
@@ -645,14 +688,14 @@ ${PB}<p class="c">3</p>
 <table ${TB}>
  <tr><th rowspan="2">Date</th><th colspan="2">Names of Places</th><th rowspan="2">Mode of conveyance used</th><th rowspan="2">Class to which entitled</th><th rowspan="2">Class by which travelled</th><th rowspan="2">Fare of the entitled class (Rs.)</th></tr>
  <tr><th>From</th><th>To</th></tr>
- ${nilRows(7,4)}
+ ${tRows('h10',r=>[fmtD(r.date),esc(r.from),esc(r.to),esc(r.mode),esc(r.ent),esc(r.trav),r.fare?f2(num(r.fare)):''],7)}
 </table>
-<p style="font-size:9.5pt">If the journey(s) by higher class of accommodation has been performed with the approval of the competent authority, No. and date of the sanction may be quoted.</p>
+<p style="font-size:9.5pt">If the journey(s) by higher class of accommodation has been performed with the approval of the competent authority, No. and date of the sanction may be quoted.${M.f10s?' <b>Sanction: '+esc(M.f10s)+'</b>':''}</p>
 <table ${NB}><tr><td style="width:6%">11.</td><td><b>Details of journey(s) performed by road between places connected by rail :–</b></td></tr></table>
 <table ${TB}>
  <tr><th rowspan="2">Date</th><th colspan="2">Names of Places</th><th rowspan="2">Fare Paid (Rs.)</th><th rowspan="2">Remarks</th></tr>
  <tr><th>From</th><th>To</th></tr>
- ${nilRows(5,4)}
+ ${tRows('r11',r=>[fmtD(r.date),esc(r.from),esc(r.to),r.fare?f2(num(r.fare)):'',esc(r.rem)],5)}
 </table>
 <table ${NB} style="margin-top:10pt">
  <tr><td style="width:6%">12.</td><td>Amount of T.A. advance, if any, drawn</td><td class="r" style="width:30%">Rs. ${t.adv?f2(t.adv):'Nil'}</td></tr>
