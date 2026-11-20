@@ -200,6 +200,9 @@ nav button.on{color:var(--red);font-weight:700}
       <h2>Bill details for this month</h2>
       <div class="grid">
         <div><label>Sub-Bill No.</label><input id="b_subbill"></div>
+        <div><label>DA amount (₹) – manual</label><input id="b_daman" type="number" inputmode="decimal" placeholder="Auto"></div>
+        <div><label>RMA amount (₹) – manual</label><input id="b_rmaman" type="number" inputmode="decimal" placeholder="Auto"></div>
+        <div class="full note" style="margin-top:-4px">Leave DA / RMA blank to calculate automatically from the tour diary.</div>
         <div><label>Actual expenses (₹)</label><input id="b_oth" type="number" inputmode="decimal"></div>
         <div class="full"><label>Details of actual expenses</label><input id="b_othd"></div>
         <div><label>TA advance drawn (₹)</label><input id="b_adv" type="number" inputmode="decimal"></div>
@@ -333,7 +336,7 @@ window.shiftMonth=d=>{const [y,m]=cur.split('-').map(Number);const x=new Date(y,
 
 /* ---------- profile & bill fields ---------- */
 const PF=['name','desig','level','pay','hq','office','darate','rma','rmacap'];
-const BF=['subbill','oth','othd','adv','vno','vdate','debit'];
+const BF=['subbill','daman','rmaman','oth','othd','adv','vno','vdate','debit'];
 function fillProfile(){PF.forEach(k=>$('p_'+k).value=S.profile[k]||'')}
 function fillBill(){const M=S.months[cur]||{};BF.forEach(k=>$('b_'+k).value=M[k]||'')}
 PF.forEach(k=>$('p_'+k).addEventListener('input',e=>{S.profile[k]=e.target.value;persist();renderAll()}));
@@ -503,10 +506,12 @@ function totals(m=cur){
   const rate=num(S.profile.rma),cap=num(S.profile.rmacap)||Infinity,byDay={};
   L.filter(isBike).forEach(l=>byDay[l.fd]=(byDay[l.fd]||0)+num(l.km));
   let km=0,capped=false;Object.values(byDay).forEach(k=>{if(k>cap)capped=true;km+=Math.min(k,cap)});
-  const rma=Math.round(km*rate*100)/100;
-  const da=daCalc(L),daAmt=da.reduce((a,x)=>a+x.amt,0),oth=num(M.oth),adv=num(M.adv);
+  const man=x=>x!==undefined&&x!==null&&String(x).trim()!=='';
+  const rmaMan=man(M.rmaman),daMan=man(M.daman);
+  const rma=rmaMan?num(M.rmaman):Math.round(km*rate*100)/100;
+  const da=daCalc(L),daAmt=daMan?num(M.daman):da.reduce((a,x)=>a+x.amt,0),oth=num(M.oth),adv=num(M.adv);
   const gross=Math.round((fare+rma+daAmt+oth)*100)/100;
-  return {L,M,T:tours(L),fare,km,rma,capped,da,daAmt,oth,adv,gross,net:Math.round((gross-adv)*100)/100};
+  return {L,M,T:tours(L),fare,km,rma,capped,rmaMan,daMan,da,daAmt,oth,adv,gross,net:Math.round((gross-adv)*100)/100};
 }
 
 /* ---------- render ---------- */
@@ -535,8 +540,8 @@ function renderAll(){
   }
   $('sum').innerHTML=`
   <tr><td>1. Fare (bus / train / others – actuals)</td><td>${rs(t.fare)}</td></tr>
-  <tr><td>2. RMA own bike: ${t.km} km × ₹${num(S.profile.rma)}${t.capped?' (capped)':''}</td><td>${rs(t.rma)}</td></tr>
-  <tr><td>3. Daily Allowance (${t.da.length} day${t.da.length==1?'':'s'})</td><td>${rs(t.daAmt)}</td></tr>
+  <tr><td>2. RMA own bike${t.rmaMan?' (entered manually)':`: ${t.km} km × ₹${num(S.profile.rma)}${t.capped?' (capped)':''}`}</td><td>${rs(t.rma)}</td></tr>
+  <tr><td>3. Daily Allowance${t.daMan?' (entered manually)':` (${t.da.length} day${t.da.length==1?'':'s'})`}</td><td>${rs(t.daAmt)}</td></tr>
   <tr><td>4. Actual expenses</td><td>${rs(t.oth)}</td></tr>
   <tr class="tot"><td>Gross claim</td><td>${rs(t.gross)}</td></tr>
   <tr><td>Less: TA advance</td><td>${rs(t.adv)}</td></tr>
@@ -694,8 +699,8 @@ function calcSheet(t){
    <colgroup><col width="72%"><col width="28%"></colgroup>
    <tr><th>Particulars</th><th>Amount (Rs.)</th></tr>
    <tr><td>1. Fare by bus / train / other conveyance (actuals)</td><td class="r">${f2(t.fare)}</td></tr>
-   <tr><td>2. Road Mileage Allowance (own bike): ${t.km} km × Rs. ${f2(num(P.rma))}/km${t.capped?' (limited to '+num(P.rmacap)+' km per day)':''}</td><td class="r">${f2(t.rma)}</td></tr>
-   <tr><td>3. Daily Allowance @ Rs. ${f2(num(P.darate))} per day</td><td class="r">${f2(t.daAmt)}</td></tr>
+   <tr><td>2. Road Mileage Allowance (own bike)${t.rmaMan?'':`: ${t.km} km × Rs. ${f2(num(P.rma))}/km${t.capped?' (limited to '+num(P.rmacap)+' km per day)':''}`}</td><td class="r">${f2(t.rma)}</td></tr>
+   <tr><td>3. Daily Allowance${t.daMan?'':` @ Rs. ${f2(num(P.darate))} per day`}</td><td class="r">${f2(t.daAmt)}</td></tr>
    <tr><td>4. Actual expenses ${M.othd?'('+v(M.othd)+')':''}</td><td class="r">${f2(t.oth)}</td></tr>
    <tr><td><b>Gross total</b></td><td class="r"><b>${f2(t.gross)}</b></td></tr>
    <tr><td>Less: TA advance drawn${M.vno?' (voucher No. '+v(M.vno)+(M.vdate?' dt. '+fmtD(M.vdate):'')+')':''}</td><td class="r">${f2(t.adv)}</td></tr>
