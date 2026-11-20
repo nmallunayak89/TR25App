@@ -689,25 +689,19 @@ function calcSheet(t){
   const sd=d=>fmtD(dkey(d))+' '+tm(d);
   return `<p class="c">5</p><h2 class="c" style="font-size:14pt;margin:0">CALCULATION OF CLAIM</h2>
   <p class="c">T.A. Bill for Tour – ${mname(cur)}<br>${v(P.name)}, ${v(P.desig)}, HQ: ${v(P.hq)}</p>
-  <p><b>A. Calculation of claim</b></p>
+  
   <table ${TB}>
    <colgroup><col width="72%"><col width="28%"></colgroup>
    <tr><th>Particulars</th><th>Amount (Rs.)</th></tr>
    <tr><td>1. Fare by bus / train / other conveyance (actuals)</td><td class="r">${f2(t.fare)}</td></tr>
    <tr><td>2. Road Mileage Allowance (own bike): ${t.km} km × Rs. ${f2(num(P.rma))}/km${t.capped?' (limited to '+num(P.rmacap)+' km per day)':''}</td><td class="r">${f2(t.rma)}</td></tr>
-   <tr><td>3. Daily Allowance @ Rs. ${f2(num(P.darate))} per day (details below)</td><td class="r">${f2(t.daAmt)}</td></tr>
+   <tr><td>3. Daily Allowance @ Rs. ${f2(num(P.darate))} per day</td><td class="r">${f2(t.daAmt)}</td></tr>
    <tr><td>4. Actual expenses ${M.othd?'('+v(M.othd)+')':''}</td><td class="r">${f2(t.oth)}</td></tr>
    <tr><td><b>Gross total</b></td><td class="r"><b>${f2(t.gross)}</b></td></tr>
    <tr><td>Less: TA advance drawn${M.vno?' (voucher No. '+v(M.vno)+(M.vdate?' dt. '+fmtD(M.vdate):'')+')':''}</td><td class="r">${f2(t.adv)}</td></tr>
    <tr><td><b>Net amount claimed</b></td><td class="r"><b>${f2(t.net)}</b></td></tr>
   </table>
   <p>(${words(t.net)})</p>
-  <p><b>B. Day-wise Daily Allowance</b> (absence per calendar day: up to 6 h – 30%; 6 to 12 h – 70%; above 12 h – 100%)</p>
-  <table ${TB}>
-   <tr><th width="8%">Sl</th><th>Date</th><th>Tour</th><th>Hours absent from HQ</th><th>DA %</th><th>Amount (Rs.)</th></tr>
-   ${t.da.map((x,i)=>`<tr><td class="c">${i+1}</td><td class="c">${fmtD(x.d)}</td><td class="c">${x.t.join(', ')}</td><td class="c">${hm(x.h)}</td><td class="c">${x.pct}%</td><td class="r">${f2(x.amt)}</td></tr>`).join('')||'<tr><td colspan="6" class="c">Nil</td></tr>'}
-   <tr><td colspan="5" class="r"><b>Total DA</b></td><td class="r"><b>${f2(t.daAmt)}</b></td></tr>
-  </table>
   <table ${NB} style="margin-top:24pt"><tr><td>Date :</td><td class="r">Signature of the Government Servant</td></tr></table>`;
 }
 const BILLCSS=p=>`${p}{font-family:"Times New Roman",serif;font-size:10.5pt;color:#000}
