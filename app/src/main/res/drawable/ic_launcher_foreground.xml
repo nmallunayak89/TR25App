@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A plain document sheet with ruled lines and a rupee-style total bar. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path android:fillColor="#FFFFFF" android:pathData="M36,28h28l10,10v42h-38z" />
+    <path android:fillColor="#FFCDD2" android:pathData="M64,28v10h10z" />
+    <path android:fillColor="#B71C1C" android:pathData="M42,46h26v3h-26zM42,53h26v3h-26zM42,60h18v3h-18z" />
+    <path android:fillColor="#FFB300" android:pathData="M42,68h26v6h-26z" />
+</vector>
