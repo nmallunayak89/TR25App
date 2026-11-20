@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#b3001b">
+<title>TR-25 Bill Generator</title>
+<style>
+:root{--red:#b3001b;--ink:#1d1d1f;--mute:#6b6b70;--line:#e3e3e8;--bg:#f6f5f2;--card:#fff;--ok:#1f7a3a}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);font-size:15px}
+header{background:var(--red);color:#fff;padding:14px 16px;position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:8px}
+header h1{font-size:17px;margin:0;letter-spacing:.3px}
+header small{display:block;font-weight:400;opacity:.85;font-size:12px}
+main{max-width:760px;margin:0 auto;padding:12px 12px 120px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin:12px 0}
+.card h2{font-size:14px;margin:0 0 10px;color:var(--red);text-transform:uppercase;letter-spacing:.6px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid .full{grid-column:1/-1}
+label{display:block;font-size:12px;color:var(--mute);margin-bottom:3px}
+input,select,textarea{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;font:inherit;background:#fff;color:var(--ink)}
+input:focus,select:focus,textarea:focus{outline:2px solid #f2b8c0;border-color:var(--red)}
+.leg{border:1px dashed #d4d4da;border-radius:10px;padding:10px;margin:10px 0;position:relative}
+.leg .no{font-weight:700;font-size:13px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+button{font:inherit;border:0;border-radius:8px;padding:10px 14px;cursor:pointer}
+.btn{background:var(--red);color:#fff;font-weight:600}
+.btn2{background:#fff;color:var(--red);border:1px solid var(--red)}
+.btnx{background:#f1f1f4;color:#555;padding:6px 10px;font-size:13px}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.sum{width:100%;border-collapse:collapse}
+.sum td{padding:6px 2px;border-bottom:1px solid var(--line)}
+.sum td:last-child{text-align:right;font-variant-numeric:tabular-nums}
+.sum tr.tot td{font-weight:700;border-top:2px solid var(--ink)}
+.note{font-size:12px;color:var(--mute);margin-top:6px}
+.bar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:flex;gap:8px;justify-content:center;z-index:6}
+.bar button{flex:1;max-width:240px}
+.chip{font-size:12px;background:#fff3;padding:4px 8px;border-radius:20px}
+#print{display:none}
+/* ---------- PRINT ---------- */
+@media print{
+  @page{size:A4;margin:12mm}
+  body{background:#fff;font-family:"Times New Roman",serif;font-size:11pt}
+  header,main,.bar{display:none!important}
+  #print{display:block}
+}
+#print h3{text-align:center;margin:2px 0;font-size:13pt}
+#print .c{text-align:center}
+#print td.c{white-space:nowrap}
+#print .r{text-align:right}
+#print table{width:100%;border-collapse:collapse;margin:6px 0}
+#print th,#print td{border:1px solid #000;padding:3px 4px;font-size:9.5pt;vertical-align:top}
+#print th{font-weight:700;text-align:center}
+#print .kv td{border:none;padding:2px 4px;font-size:10.5pt}
+#print .cert{font-size:10pt;margin:4px 0}
+#print .sig{display:flex;justify-content:space-between;margin-top:28px;font-size:10.5pt}
+#print .pb{page-break-before:always}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>TR-25 BILL GENERATOR<small>T.R. 25-A / G.A.R. 14-A · TA Bill for Tour</small></h1></div>
+  <span class="chip" id="saved">Offline</span>
+</header>
+
+<main>
+  <section class="card">
+    <h2>Officer details</h2>
+    <div class="grid">
+      <div class="full"><label>Name</label><input id="name" placeholder="e.g. Mallikarjuna"></div>
+      <div><label>Designation</label><input id="desig" placeholder="Inspector Posts"></div>
+      <div><label>Pay Level</label><input id="level" placeholder="Level 7"></div>
+      <div><label>Basic Pay (₹)</label><input id="pay" type="number" inputmode="numeric"></div>
+      <div><label>Headquarters</label><input id="hq" placeholder="Gauribidanur"></div>
+      <div class="full"><label>Office / Sub-Division / Division</label><input id="office" placeholder="Gauribidanur Sub-Division, Kolar Division"></div>
+      <div><label>Daily Allowance rate (₹ per day, 100%)</label><input id="darate" type="number" inputmode="decimal"></div>
+      <div><label>RMA rate for own bike (₹/km)</label><input id="rma" type="number" inputmode="decimal" value="15"></div>
+      <div><label>RMA max km per day</label><input id="rmacap" type="number" inputmode="numeric" value="200"></div>
+      <div><label>Bill for the month of</label><input id="month" type="month"></div>
+    </div>
+    <p class="note">Officer details are remembered on this device.</p>
+  </section>
+
+  <section class="card">
+    <h2>Journeys</h2>
+    <div id="legs"></div>
+    <div class="row">
+      <button class="btn2" onclick="addLeg()">+ Add journey</button>
+      <button class="btn2" onclick="addReturn()">+ Add return of last journey</button>
+    </div>
+    <p class="note">Departure from HQ starts the absence; arrival back at HQ ends it. DA is worked out per calendar day: under 6 h = 30%, 6–12 h = 70%, above 12 h = 100%.</p>
+  </section>
+
+  <section class="card">
+    <h2>Advance &amp; others</h2>
+    <div class="grid">
+      <div><label>TA advance drawn (₹)</label><input id="adv" type="number" inputmode="decimal" value="0"></div>
+      <div><label>Other admissible charges (₹)</label><input id="oth" type="number" inputmode="decimal" value="0"></div>
+      <div class="full"><label>Details of other charges</label><input id="othd" placeholder="e.g. Local conveyance at Kolar"></div>
+      <div class="full"><label>Purpose of tour (overall)</label><input id="purpose" placeholder="Inspection of POs / BOs"></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Part B – Calculation</h2>
+    <table class="sum" id="sum"></table>
+    <div id="dadetail" class="note"></div>
+  </section>
+
+  <section class="card">
+    <h2>Data</h2>
+    <div class="row">
+      <button class="btnx" onclick="newBill()">New bill (keep officer)</button>
+      <button class="btnx" onclick="exportJSON()">Backup bill</button>
+      <button class="btnx" onclick="document.getElementById('imp').click()">Restore bill</button>
+      <input type="file" id="imp" accept=".json,application/json" style="display:none" onchange="importJSON(this)">
+    </div>
+  </section>
+</main>
+
+<div class="bar">
+  <button class="btn" onclick="doPrint()">Print / Save PDF</button>
+</div>
+
+<div id="print"></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const OF=['name','desig','level','pay','hq','office','darate','rma','rmacap'];
+const BF=['month','adv','oth','othd','purpose'];
+const MODES=['Bus','Train','Own Bike (RMA)','Auto / Taxi','Departmental vehicle','Other'];
+let legs=[];
+
+function store(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+function load(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}}
+
+function blankLeg(){return {fs:'',fd:'',ft:'',ts:'',td:'',tt:'',mode:'Bus',cls:'Ordinary',fare:'',km:'',purp:''}}
+
+function renderLegs(){
+  const box=$('legs');box.innerHTML='';
+  legs.forEach((l,i)=>{
+    const d=document.createElement('div');d.className='leg';
+    d.innerHTML=`<div class="no">Journey ${i+1}<button class="btnx" onclick="delLeg(${i})">Remove</button></div>
+    <div class="grid">
+      <div><label>From (station)</label><input data-k="fs" value="${esc(l.fs)}"></div>
+      <div><label>To (station)</label><input data-k="ts" value="${esc(l.ts)}"></div>
+      <div><label>Departure date</label><input type="date" data-k="fd" value="${l.fd}"></div>
+      <div><label>Departure time</label><input type="time" data-k="ft" value="${l.ft}"></div>
+      <div><label>Arrival date</label><input type="date" data-k="td" value="${l.td}"></div>
+      <div><label>Arrival time</label><input type="time" data-k="tt" value="${l.tt}"></div>
+      <div><label>Mode</label><select data-k="mode">${MODES.map(m=>`<option ${m==l.mode?'selected':''}>${m}</option>`).join('')}</select></div>
+      <div><label>Class</label><input data-k="cls" value="${esc(l.cls)}"></div>
+      <div><label>Fare paid (₹)</label><input type="number" inputmode="decimal" data-k="fare" value="${l.fare}"></div>
+      <div><label>Distance km (road)</label><input type="number" inputmode="decimal" data-k="km" value="${l.km}"></div>
+      <div class="full"><label>Purpose / nature of halt</label><input data-k="purp" value="${esc(l.purp)}"></div>
+    </div>`;
+    d.querySelectorAll('[data-k]').forEach(inp=>{
+      inp.addEventListener('input',()=>{legs[i][inp.dataset.k]=inp.value;
+        if(inp.dataset.k==='fd'&&!legs[i].td){legs[i].td=inp.value;d.querySelector('[data-k=td]').value=inp.value}
+        save()});
+      inp.addEventListener('change',()=>{legs[i][inp.dataset.k]=inp.value;save()});
+    });
+    box.appendChild(d);
+  });
+}
+function esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')}
+function addLeg(){const p=legs[legs.length-1];const n=blankLeg();
+  if(p){n.fs=p.ts;n.fd=p.td;n.mode=p.mode;n.cls=p.cls}else{n.fs=$('hq').value}
+  legs.push(n);renderLegs();save()}
+function addReturn(){const p=legs[legs.length-1];if(!p)return addLeg();
+  const n=blankLeg();Object.assign(n,{fs:p.ts,ts:p.fs,fd:p.td,td:p.td,mode:p.mode,cls:p.cls,fare:p.fare,km:p.km,purp:'Return to HQ'});
+  legs.push(n);renderLegs();save()}
+function delLeg(i){if(confirmDel()){legs.splice(i,1);renderLegs();save()}}
+function confirmDel(){return true}
+
+const num=v=>{const n=parseFloat(v);return isNaN(n)?0:n};
+const dt=(d,t)=>d?new Date(d+'T'+(t||'00:00')):null;
+const same=(a,b)=>a.trim().toLowerCase()===b.trim().toLowerCase()&&a.trim()!=='';
+const fmtD=d=>d?d.split('-').reverse().join('-'):'';
+const rs=n=>'₹ '+n.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+/* absence periods from HQ */
+function absences(){
+  const hq=$('hq').value; const out=[]; let start=null;
+  legs.forEach(l=>{
+    const dep=dt(l.fd,l.ft), arr=dt(l.td,l.tt);
+    if(!dep||!arr)return;
+    if(start===null && (same(l.fs,hq)||!hq.trim()))start=dep;
+    if(start===null)start=dep;
+    if(same(l.ts,hq)){out.push([start,arr]);start=null}
+  });
+  if(start!==null){const last=legs.filter(l=>l.td).slice(-1)[0];
+    if(last){const e=dt(last.td,last.tt);if(e>start)out.push([start,e])}}
+  return out;
+}
+/* per-calendar-day DA */
+function daCalc(){
+  const rate=num($('darate').value); const days=[];
+  absences().forEach(([s,e])=>{
+    let cur=new Date(s);
+    while(cur<e){
+      const mid=new Date(cur);mid.setHours(24,0,0,0);
+      const end=e<mid?e:mid; const h=(end-cur)/36e5;
+      const pct=h>12?100:h>=6?70:30;
+      const key=cur.toISOString().slice(0,10);
+      const dkey=`${cur.getFullYear()}-${String(cur.getMonth()+1).padStart(2,'0')}-${String(cur.getDate()).padStart(2,'0')}`;
+      const ex=days.find(x=>x.d===dkey);
+      if(ex){ex.h+=h;ex.pct=ex.h>12?100:ex.h>=6?70:30}
+      else days.push({d:dkey,h,pct});
+      cur=end;
+    }
+  });
+  days.forEach(x=>x.amt=Math.round(rate*x.pct)/100);
+  return days;
+}
+function rmaCalc(){
+  const rate=num($('rma').value), cap=num($('rmacap').value)||Infinity; const byDay={};
+  legs.forEach(l=>{if(l.mode.startsWith('Own Bike')){byDay[l.fd]=(byDay[l.fd]||0)+num(l.km)}});
+  let km=0,capped=false;
+  Object.values(byDay).forEach(k=>{if(k>cap)capped=true;km+=Math.min(k,cap)});
+  return {km,amt:Math.round(km*rate*100)/100,capped};
+}
+function totals(){
+  const fare=legs.filter(l=>!l.mode.startsWith('Own Bike')).reduce((a,l)=>a+num(l.fare),0);
+  const r=rmaCalc(); const da=daCalc(); const daAmt=da.reduce((a,x)=>a+x.amt,0);
+  const oth=num($('oth').value); const gross=Math.round((fare+r.amt+daAmt+oth)*100)/100;
+  const adv=num($('adv').value);
+  return {fare,r,da,daAmt,oth,gross,adv,net:Math.round((gross-adv)*100)/100};
+}
+function renderSum(){
+  const t=totals();
+  $('sum').innerHTML=`
+  <tr><td>1. Fare (bus / train / others – actuals)</td><td>${rs(t.fare)}</td></tr>
+  <tr><td>2. RMA own bike: ${t.r.km} km × ₹${num($('rma').value)}${t.r.capped?' (capped)':''}</td><td>${rs(t.r.amt)}</td></tr>
+  <tr><td>3. Daily Allowance (${t.da.length} day${t.da.length==1?'':'s'})</td><td>${rs(t.daAmt)}</td></tr>
+  <tr><td>4. Other charges</td><td>${rs(t.oth)}</td></tr>
+  <tr class="tot"><td>Gross claim</td><td>${rs(t.gross)}</td></tr>
+  <tr><td>Less: TA advance</td><td>${rs(t.adv)}</td></tr>
+  <tr class="tot"><td>Net amount claimed</td><td>${rs(t.net)}</td></tr>`;
+  $('dadetail').textContent=t.da.length?'DA: '+t.da.map(x=>`${fmtD(x.d)} ${x.h.toFixed(1)}h→${x.pct}%`).join(' · '):(num($('darate').value)?'':'Enter the DA rate to calculate daily allowance.');
+}
+
+/* amount in words – Indian system */
+function words(n){
+  const a=['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
+  const b=['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+  const two=x=>x<20?a[x]:b[Math.floor(x/10)]+(x%10?' '+a[x%10]:'');
+  const three=x=>(x>=100?a[Math.floor(x/100)]+' Hundred'+(x%100?' ':''):'')+(x%100?two(x%100):'');
+  let r=Math.floor(n),p=Math.round((n-r)*100),s='';
+  if(r===0)s='Zero';
+  const cr=Math.floor(r/1e7);r%=1e7;const lk=Math.floor(r/1e5);r%=1e5;const th=Math.floor(r/1e3);r%=1e3;
+  if(cr)s+=three(cr)+' Crore ';if(lk)s+=two(lk)+' Lakh ';if(th)s+=two(th)+' Thousand ';if(r)s+=three(r);
+  s='Rupees '+s.trim();if(p)s+=' and '+two(p)+' Paise';return s+' Only';
+}
+
+function buildPrint(){
+  const t=totals(), v=id=>esc($(id).value);
+  const m=$('month').value?new Date($('month').value+'-01').toLocaleString('en-IN',{month:'long',year:'numeric'}):'';
+  const rows=legs.map((l,i)=>{
+    const isBike=l.mode.startsWith('Own Bike');
+    return `<tr><td class="c">${i+1}</td><td>${esc(l.fs)}</td><td class="c">${fmtD(l.fd)}</td><td class="c">${l.ft}</td>
+    <td>${esc(l.ts)}</td><td class="c">${fmtD(l.td)}</td><td class="c">${l.tt}</td><td>${esc(l.mode)}</td><td>${esc(l.cls)}</td>
+    <td class="r">${isBike?'—':num(l.fare).toFixed(2)}</td><td class="r">${l.km||''}</td><td>${esc(l.purp)}</td></tr>`}).join('');
+  const darows=t.da.map((x,i)=>`<tr><td class="c">${i+1}</td><td class="c">${fmtD(x.d)}</td><td class="c">${x.h.toFixed(1)}</td><td class="c">${x.pct}%</td><td class="r">${x.amt.toFixed(2)}</td></tr>`).join('')||'<tr><td colspan="5" class="c">Nil</td></tr>';
+  $('print').innerHTML=`
+  <div class="r" style="font-size:9pt">T.R. 25-A / G.A.R. 14-A</div>
+  <h3>DEPARTMENT OF POSTS, INDIA</h3>
+  <h3>TRAVELLING ALLOWANCE BILL FOR TOUR</h3>
+  <div class="c" style="font-size:10pt">${m?'For the month of '+m:''}</div>
+  <h3 style="margin-top:8px">PART A</h3>
+  <table class="kv">
+   <tr><td style="width:38%">1. Name of the Officer</td><td>: ${v('name')}</td></tr>
+   <tr><td>2. Designation</td><td>: ${v('desig')}</td></tr>
+   <tr><td>3. Pay Level / Basic Pay</td><td>: ${v('level')}${$('pay').value?' / ₹ '+v('pay'):''}</td></tr>
+   <tr><td>4. Headquarters</td><td>: ${v('hq')}</td></tr>
+   <tr><td>5. Office</td><td>: ${v('office')}</td></tr>
+   <tr><td>6. Purpose of tour</td><td>: ${v('purpose')}</td></tr>
+  </table>
+  <table>
+   <tr><th rowspan="2">Sl</th><th colspan="3">Departure</th><th colspan="3">Arrival</th><th rowspan="2">Mode of travel</th><th rowspan="2">Class</th><th rowspan="2">Fare paid (₹)</th><th rowspan="2">Dist. (km)</th><th rowspan="2">Purpose / nature of halt</th></tr>
+   <tr><th>Station</th><th>Date</th><th>Hour</th><th>Station</th><th>Date</th><th>Hour</th></tr>
+   ${rows||'<tr><td colspan="12" class="c">—</td></tr>'}
+  </table>
+  <h3 style="margin-top:8px">PART B – CALCULATION OF CLAIM</h3>
+  <table>
+   <tr><th style="width:70%">Particulars</th><th>Amount (₹)</th></tr>
+   <tr><td>1. Fare by bus / train / other conveyance (actuals)</td><td class="r">${t.fare.toFixed(2)}</td></tr>
+   <tr><td>2. Road Mileage Allowance (own bike): ${t.r.km} km × ₹ ${num($('rma').value)}/km${t.r.capped?' (limited to '+num($('rmacap').value)+' km per day)':''}</td><td class="r">${t.r.amt.toFixed(2)}</td></tr>
+   <tr><td>3. Daily Allowance @ ₹ ${num($('darate').value)} per day (details below)</td><td class="r">${t.daAmt.toFixed(2)}</td></tr>
+   <tr><td>4. Other admissible charges ${v('othd')?'('+v('othd')+')':''}</td><td class="r">${t.oth.toFixed(2)}</td></tr>
+   <tr><td><b>Gross total</b></td><td class="r"><b>${t.gross.toFixed(2)}</b></td></tr>
+   <tr><td>Less: TA advance drawn</td><td class="r">${t.adv.toFixed(2)}</td></tr>
+   <tr><td><b>Net amount claimed</b></td><td class="r"><b>${t.net.toFixed(2)}</b></td></tr>
+  </table>
+  <div class="cert">(${words(t.net)})</div>
+  <table style="width:70%">
+   <tr><th>Sl</th><th>Date</th><th>Hours absent from HQ</th><th>DA %</th><th>Amount (₹)</th></tr>${darows}
+  </table>
+  <div class="cert" style="font-size:9pt">DA rule: absence up to 6 hours – 30%; 6 to 12 hours – 70%; above 12 hours – 100% of the daily rate, per calendar day.</div>
+  <div class="cert"><b>Certificates</b></div>
+  <div class="cert">1. Certified that the journeys were performed on duty and the claims are in accordance with the rules.</div>
+  <div class="cert">2. Certified that I did not avail free boarding/lodging or a Government/free conveyance for the journeys claimed, except as stated.</div>
+  <div class="cert">3. Certified that the fare claimed has actually been paid and the class of travel is within entitlement.</div>
+  <div class="cert">4. Certified that the road mileage claimed for own conveyance relates to the shortest route.</div>
+  <div class="sig"><div>Station: ${v('hq')}<br>Date:</div><div class="c">Signature of the Officer<br>${v('name')}<br>${v('desig')}</div></div>
+  <div style="border-top:1px dashed #000;margin-top:18px;padding-top:6px">
+   <b>FOR USE IN THE CONTROLLING / DRAWING OFFICE</b>
+   <div class="cert">Countersigned. Passed for payment of ₹ ............................ (Rupees ................................................................................ only).</div>
+   <div class="sig"><div>Date:</div><div class="c">Controlling Officer</div></div>
+  </div>`;
+}
+function doPrint(){
+  buildPrint();
+  if(window.Android&&Android.print){Android.print()}else{window.print()}
+}
+
+function save(){
+  const o={};OF.forEach(k=>o[k]=$(k).value);store('tr25_officer',o);
+  const b={legs};BF.forEach(k=>b[k]=$(k).value);store('tr25_bill',b);
+  renderSum();
+}
+function newBill(){legs=[];BF.forEach(k=>$(k).value=k==='adv'||k==='oth'?'0':'');renderLegs();save()}
+function exportJSON(){
+  save();const data={officer:load('tr25_officer'),bill:load('tr25_bill')};
+  const blob=new Blob([JSON.stringify(data,null,1)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='TR25_bill_'+($('month').value||'backup')+'.json';a.click();
+}
+function importJSON(inp){
+  const f=inp.files[0];if(!f)return;const r=new FileReader();
+  r.onload=()=>{try{const d=JSON.parse(r.result);apply(d.officer,d.bill);save()}catch(e){alert('Not a valid backup file')}};
+  r.readAsText(f);inp.value='';
+}
+function apply(o,b){
+  if(o)OF.forEach(k=>{if(o[k]!=null)$(k).value=o[k]});
+  if(b){BF.forEach(k=>{if(b[k]!=null)$(k).value=b[k]});legs=b.legs||[]}
+  renderLegs();
+}
+[...OF,...BF].forEach(k=>$(k).addEventListener('input',save));
+apply(load('tr25_officer'),load('tr25_bill'));
+if(!legs.length)addLeg();
+if(!$('month').value){const d=new Date();$('month').value=d.toISOString().slice(0,7)}
+renderSum();
+</script>
+</body>
+</html>
