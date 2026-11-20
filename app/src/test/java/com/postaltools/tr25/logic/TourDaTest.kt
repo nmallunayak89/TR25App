@@ -79,4 +79,18 @@ class TourDaTest {
         assertEquals("Rupees One Thousand Five Hundred Fifty Only", Words.rupees(bd("1550")))
         assertEquals("Rupees Two Lakh Three Thousand and Fifty Paise Only", Words.rupees(bd("203000.50")))
     }
+
+    @Test fun reportRows() {
+        val b = bill(
+            j("18-11-2026 08:30", "Gauribidanur", "18-11-2026 09:10", "Chikkaballapur", "Own motor cycle (RMA)", km = "40"),
+            j("18-11-2026 16:30", "Chikkaballapur", "18-11-2026 17:30", "Gauribidanur", "Own motor cycle (RMA)", km = "40"),
+        )
+        val t = Calculator.compute(b)
+        val tours = TourReport.tourRows(t)
+        assertEquals(listOf("1", "Gauribidanur – Chikkaballapur – Gauribidanur", "18-11-2026 08:30", "18-11-2026 17:30",
+            "9 h 00 m", "18-11-2026 – 70%"), tours.single())
+        val diary = TourReport.diaryRows(b.journeys)
+        assertEquals(2, diary.size)
+        assertEquals(listOf("18-11-2026", "08:30", "Gauribidanur", "09:10", "Chikkaballapur"), diary[0].take(5))
+    }
 }

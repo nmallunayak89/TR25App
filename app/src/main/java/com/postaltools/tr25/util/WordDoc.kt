@@ -134,6 +134,20 @@ h2{text-align:center;font-size:14pt;margin:4pt 0}</style></head><body><div class
         sb.append(table(listOf("Particulars", "Amount (Rs.)"), rows))
         sb.append("<p>(${Words.rupees(t.net)})</p><br><br>")
         sb.append("<table $N><tr><td>Date: ${e(b.claimDate)}</td><td align=\"right\">Signature of the Govt. Servant</td></tr></table>")
+        // -------- Page 6: Tour movement & diary
+        val tr = com.postaltools.tr25.logic.TourReport
+        val diary = tr.diaryRows(b.journeys)
+        if (diary.isNotEmpty()) {
+            sb.append(BR).append("<h2>TOUR MOVEMENT &amp; DIARY</h2>")
+            sb.append("<p align=\"center\">${e(b.name)}, ${e(b.designation)}, HQ: ${e(b.headquarters)}</p>")
+            sb.append("<p><b>A. Tour movement (departure from HQ to arrival back at HQ)</b></p>")
+            sb.append(table(tr.tourHead, tr.tourRows(t).map { r -> r.map { e(it) } }))
+            sb.append("<p><i>DA per calendar day of absence from HQ: up to 6 hours 30%, 6 to 12 hours 70%, above 12 hours 100%.</i></p>")
+            sb.append("<p><b>B. Tour diary (day-to-day journeys)</b></p>")
+            sb.append(table(tr.diaryHead, diary.map { r -> r.map { e(it) } }))
+            sb.append("<p>Certified that the above tours were performed on duty.</p><br><br>")
+            sb.append("<table $N><tr><td>Date: ${e(b.claimDate)}</td><td align=\"right\">Signature of the Govt. Servant</td></tr></table>")
+        }
         sb.append("</div></body></html>")
         return "﻿" + sb.toString()
     }

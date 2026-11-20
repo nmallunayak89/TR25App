@@ -253,6 +253,23 @@ object Tr25aPdf {
         w.paragraph("(${com.postaltools.tr25.logic.Words.rupees(t.net)})", 9f, after = 6f)
         w.signatureRow("Date: ${b.claimDate}", "Signature of the Govt. Servant", space = 34f)
 
+        // ---------------- TOUR MOVEMENT & DIARY (separate page) ----------------
+        val diary = com.postaltools.tr25.logic.TourReport.diaryRows(b.journeys)
+        if (diary.isNotEmpty()) {
+            w.newPage()
+            w.paragraph("TOUR MOVEMENT & DIARY", 13f, bold = true, align = CENTER, after = 2f)
+            w.paragraph("${b.name}, ${b.designation}, HQ: ${b.headquarters}", 8.5f, align = CENTER, after = 8f)
+            w.paragraph("A. Tour movement (departure from HQ to arrival back at HQ)", 9.5f, bold = true, after = 4f)
+            val tr = com.postaltools.tr25.logic.TourReport
+            w.table(tr.tourHead.zip(tr.tourWeights).map { (h, wt) -> PdfWriter.Col(h, wt) }, tr.tourRows(t).ifEmpty { listOf(listOf("", "Nil", "", "", "", "")) }, size = 8f)
+            w.paragraph("DA per calendar day of absence from HQ: up to 6 hours 30%, 6 to 12 hours 70%, above 12 hours 100%.",
+                7.5f, italic = true, after = 10f)
+            w.paragraph("B. Tour diary (day-to-day journeys)", 9.5f, bold = true, after = 4f)
+            w.table(tr.diaryHead.zip(tr.diaryWeights).map { (h, wt) -> PdfWriter.Col(h, wt) }, diary, size = 7.5f)
+            w.paragraph("Certified that the above tours were performed on duty.", 8.5f, after = 4f)
+            w.signatureRow("Date: ${b.claimDate}", "Signature of the Govt. Servant", space = 30f)
+        }
+
         w.finishPage()
         return w.pageNo
     }
