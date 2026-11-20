@@ -72,6 +72,9 @@ object Tr25aPdf {
         // ---------------- Item 5 ----------------
         w.paragraph("5. Details and purpose of journey(s) performed :-", 8.5f, bold = true, after = 3f)
         val journeys = b.journeys.filterNot { Validator.isEmptyJourney(it) }
+        val halts = com.postaltools.tr25.logic.Tours.halts(t.tours)
+        fun haltD(j: com.postaltools.tr25.data.JourneyRow) = j.haltDays.trim().ifBlank { halts[j]?.let { m -> if (m >= 1440) "${m / 1440}" else "" } ?: "" }
+        fun haltH(j: com.postaltools.tr25.data.JourneyRow) = j.haltHours.trim().ifBlank { halts[j]?.let { m -> "%d:%02d".format((m % 1440) / 60, m % 60) } ?: "" }
         w.table(
             listOf(
                 PdfWriter.Col("Date and Time", 58f, CENTER, "Departure", "1"),
@@ -87,7 +90,7 @@ object Tr25aPdf {
             ),
             journeys.map {
                 listOf(dt(it.depDateTime), it.fromPlace, dt(it.arrDateTime), it.toPlace, it.modeClass,
-                    amt(it.fare), it.distanceKm.trim(), it.haltDays.trim(), it.haltHours.trim(),
+                    amt(it.fare), it.distanceKm.trim(), haltD(it), haltH(it),
                     it.purpose + (if (it.remarks.isNotBlank()) " (${it.remarks.trim()})" else ""))
             },
         )

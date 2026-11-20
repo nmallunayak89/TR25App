@@ -70,9 +70,15 @@ object Calculator {
         val kmByDay = linkedMapOf<String, BigDecimal>()
         b.journeys.forEachIndexed { i, j ->
             val n = i + 1
-            fareAuto += num("journey.$i.fare", j.fare, "Journey $n fare")
-            val dayKey = Dates.parseDateTime(j.depDateTime)?.toLocalDate()?.toString() ?: "row$i"
-            kmByDay[dayKey] = (kmByDay[dayKey] ?: BigDecimal.ZERO) + num("journey.$i.distanceKm", j.distanceKm, "Journey $n distance")
+            val f = num("journey.$i.fare", j.fare, "Journey $n fare")
+            val d = num("journey.$i.distanceKm", j.distanceKm, "Journey $n distance")
+            // Bus / rail / air / taxi / auto: actual fare only – their distance is not road mileage.
+            if (!Tours.isPublicTransport(j.modeClass)) {
+                val dayKey = Dates.parseDateTime(j.depDateTime)?.toLocalDate()?.toString() ?: "row$i"
+                kmByDay[dayKey] = (kmByDay[dayKey] ?: BigDecimal.ZERO) + d
+            }
+            // Own vehicle: road mileage instead of fare.
+            if (!Tours.isOwnVehicle(j.modeClass)) fareAuto += f
             num("journey.$i.haltDays", j.haltDays, "Journey $n halt days", 0)
             val h = num("journey.$i.haltHours", j.haltHours, "Journey $n halt hours", 0)
             if (h > BigDecimal(23)) errors["journey.$i.haltHours"] = "Journey $n halt hours must be 0–23"

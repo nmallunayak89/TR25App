@@ -34,6 +34,9 @@ object WordDoc {
     fun build(b: TaBill): String {
         val t = Calculator.compute(b)
         val j = b.journeys.filterNot { Validator.isEmptyJourney(it) }
+        val halts = com.postaltools.tr25.logic.Tours.halts(t.tours)
+        fun haltD(r: com.postaltools.tr25.data.JourneyRow) = r.haltDays.trim().ifBlank { halts[r]?.let { m -> if (m >= 1440) "${m / 1440}" else "" } ?: "" }
+        fun haltH(r: com.postaltools.tr25.data.JourneyRow) = r.haltHours.trim().ifBlank { halts[r]?.let { m -> "%d:%02d".format((m % 1440) / 60, m % 60) } ?: "" }
         val sb = StringBuilder()
         sb.append("""<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
 <head><meta charset="utf-8"><title>TR-25A</title>
@@ -55,7 +58,7 @@ h2{text-align:center;font-size:14pt;margin:4pt 0}</style></head><body><div class
                 "Fare paid Rs.", "Distance Km for mileage", "Halt Days", "Halt Hours", "Purpose of Journey / Remarks"),
             j.map {
                 listOf(e(it.depDateTime), e(it.fromPlace), e(it.arrDateTime), e(it.toPlace), e(it.modeClass), amt(it.fare),
-                    e(it.distanceKm), e(it.haltDays), e(it.haltHours),
+                    e(it.distanceKm), e(haltD(it)), e(haltH(it)),
                     e(it.purpose) + if (it.remarks.isNotBlank()) " (${e(it.remarks)})" else "")
             },
         ))

@@ -29,6 +29,7 @@ import com.postaltools.tr25.data.JourneyRow
 import com.postaltools.tr25.data.RoadRow
 import com.postaltools.tr25.logic.Money
 import com.postaltools.tr25.logic.Validator
+import com.postaltools.tr25.logic.Dates
 import com.postaltools.tr25.ui.components.DateField
 import com.postaltools.tr25.ui.components.Field
 import com.postaltools.tr25.ui.components.FieldKind
@@ -48,7 +49,7 @@ val DESIGNATIONS = listOf(
 val MODES = listOf(
     "Rail - Sleeper Class", "Rail - AC 3 Tier", "Rail - AC 2 Tier", "Rail - AC Chair Car", "Rail - Second Class",
     "Bus - Ordinary", "Bus - Express", "Bus - AC", "Air - Economy", "Taxi", "Auto rickshaw",
-    "Own vehicle", "Departmental vehicle",
+    "Own motor cycle (RMA)", "Own vehicle", "Departmental vehicle",
 )
 val PURPOSES = listOf("Inspection", "Training", "Official meeting", "Investigation", "Audit", "Return to headquarters")
 val TRAIN_TYPES = listOf("Mail", "Express", "Superfast", "Ordinary")
@@ -144,6 +145,15 @@ fun JourneysTab(vm: EditorViewModel) {
             }
         }
         TourSummary(vm.totals, b.headquarters)
+        val ctx = androidx.compose.ui.platform.LocalContext.current
+        AddButton("Refresh journeys from Tour Diary") {
+            val first = b.journeys.firstNotNullOfOrNull { Dates.parseDateTime(it.depDateTime) }
+            val ym = first?.let { java.time.YearMonth.from(it) } ?: java.time.YearMonth.now()
+            val n = vm.loadFromDiary(ym)
+            android.widget.Toast.makeText(ctx,
+                if (n > 0) "$n journeys loaded from Tour Diary (${ym.month.name.lowercase().replaceFirstChar { it.uppercase() }} ${ym.year})"
+                else "No diary journeys for that month", android.widget.Toast.LENGTH_SHORT).show()
+        }
         AddButton("Add connecting journey (from last place)") {
             vm.update {
                 val last = it.journeys.lastOrNull { j -> !Validator.isEmptyJourney(j) }
@@ -320,13 +330,13 @@ fun PartBTab(vm: EditorViewModel) {
     val t = vm.totals
     Section("PART B — Calculation", "Totals update as you type. All rates are entered by you; please verify them.") {
         Text("(a) Railways/Air/Bus/Steamer fare", style = MaterialTheme.typography.labelLarge)
-        Text("Total of fares in item 5: ${Money.rupees(t.fareAuto)}", style = MaterialTheme.typography.bodyMedium)
+        Text("Total of fares in item 5 (bus / rail / air / taxi; own vehicle excluded): ${Money.rupees(t.fareAuto)}", style = MaterialTheme.typography.bodyMedium)
         MoneyField("Different amount for (a)? (leave blank to use the total)", b.fareOverride,
             { v -> vm.update { it.copy(fareOverride = v) } }, error = vm.errorFor("fareOverride"))
 
         HorizontalDivider()
         Text("(b) Road mileage", style = MaterialTheme.typography.labelLarge)
-        Text("Total distance in item 5: ${Money.qty(t.kmAuto)} Km", style = MaterialTheme.typography.bodyMedium)
+        Text("Own-vehicle distance in item 5: ${Money.qty(t.kmAuto)} Km (bus / rail distances are not counted)", style = MaterialTheme.typography.bodyMedium)
         Field("Mileage limit per day (Km, blank = no limit)", b.mileageCapKm, { v -> vm.update { it.copy(mileageCapKm = v) } },
             kind = FieldKind.NUMBER, error = vm.errorFor("mileageCapKm"))
         if (t.kmCapped) Text("Some days are above the limit; only ${b.mileageCapKm} Km per day is counted.",

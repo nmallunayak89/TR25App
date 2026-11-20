@@ -56,6 +56,25 @@ object Tours {
         return out
     }
 
+    /** Own motor cycle / scooter / car: road mileage is claimed instead of fare. */
+    fun isOwnVehicle(mode: String): Boolean =
+        Regex("own|bike|motor ?cycle|scooter|two.?wheeler|rma", RegexOption.IGNORE_CASE).containsMatchIn(mode)
+
+    fun isPublicTransport(mode: String): Boolean = !isOwnVehicle(mode) &&
+        Regex("bus|rail|train|air|flight|taxi|auto|steamer|ferry|ksrtc|metro", RegexOption.IGNORE_CASE).containsMatchIn(mode)
+
+    /** Halt at the place reached by each journey within a tour (time until the next departure). */
+    fun halts(tours: List<Tour>): Map<JourneyRow, Long> {
+        val out = mutableMapOf<JourneyRow, Long>()
+        tours.forEach { t ->
+            t.legs.zipWithNext { a, b ->
+                val arr = Dates.parseDateTime(a.arrDateTime); val dep = Dates.parseDateTime(b.depDateTime)
+                if (arr != null && dep != null && dep.isAfter(arr)) out[a] = Duration.between(arr, dep).toMinutes()
+            }
+        }
+        return out
+    }
+
     fun pct(minutes: Long): Int = when {
         minutes > 12 * 60 -> 100
         minutes >= 6 * 60 -> 70

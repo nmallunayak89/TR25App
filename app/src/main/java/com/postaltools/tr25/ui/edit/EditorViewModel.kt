@@ -49,9 +49,26 @@ class EditorViewModel(private val app: TrApp, private val billId: Long, private 
                     val rows = com.postaltools.tr25.ui.diary.journeysOf(app.diary.load(), ym)
                     if (rows.isEmpty()) fresh else fresh.copy(journeys = rows, autoDa = true)
                 }
-            } else app.repo.load(billId) ?: app.settings.newBill(Dates.today())
+            } else app.repo.load(billId)?.let { old ->
+                // Bills made before auto DA: switch it on if no DA lines were typed, and fill blank rates from Settings.
+                val s = app.settings.load()
+                val noSlabs = old.daSlabs.all { it.days.isBlank() }
+                old.copy(
+                    autoDa = old.autoDa || noSlabs,
+                    daRate = old.daRate.ifBlank { s.daRate },
+                    mileageRate = old.mileageRate.ifBlank { s.mileageRate.ifBlank { "15" } },
+                    mileageCapKm = old.mileageCapKm.ifBlank { s.mileageCapKm },
+                )
+            } ?: app.settings.newBill(Dates.today())
             loaded = true
         }
+    }
+
+    /** Replaces item 5 with the Tour Diary journeys of [ym]. Returns how many were loaded. */
+    fun loadFromDiary(ym: java.time.YearMonth): Int {
+        val rows = com.postaltools.tr25.ui.diary.journeysOf(app.diary.load(), ym)
+        if (rows.isNotEmpty()) update { it.copy(journeys = rows) }
+        return rows.size
     }
 
     fun update(change: (TaBill) -> TaBill) {
