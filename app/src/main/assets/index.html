@@ -26,6 +26,8 @@ button{font:inherit;border:0;border-radius:8px;padding:11px 14px;cursor:pointer;
 .btnx{background:#f1f1f4;color:#444}
 .row{display:flex;gap:8px;flex-wrap:wrap}
 .row>button{flex:1 1 auto}
+.chk{display:flex;align-items:center;gap:10px;font-size:15px;color:var(--ink);background:#faf7f7;padding:10px;border-radius:8px}.chk input{width:22px;height:22px;margin:0}
+.tour{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:10px 0 4px;background:#fff}.tour b{color:var(--red)}.tour.bad{border-color:var(--red);background:#fff1f2}
 .note{font-size:12px;color:var(--mute);margin-top:6px}
 .err{color:var(--red);font-size:13px;min-height:18px;margin-top:6px}
 .hide{display:none!important}
@@ -90,6 +92,7 @@ nav button.on{color:var(--red);font-weight:700}
         <div class="full"><label>Your name</label><input id="su_name" autocomplete="off"></div>
         <div><label>Create 4-digit PIN</label><input id="su_pin" class="pin" type="password" inputmode="numeric" maxlength="4"></div>
         <div><label>Confirm PIN</label><input id="su_pin2" class="pin" type="password" inputmode="numeric" maxlength="4"></div>
+        <div class="full"><label>Headquarters (tours start &amp; end here)</label><input id="su_hq" placeholder="e.g. Gauribidanur"></div>
         <div class="full"><label>Recovery word (to reset a forgotten PIN)</label><input id="su_rec" autocomplete="off" placeholder="e.g. your birthplace"></div>
       </div>
       <button class="btn" style="width:100%;margin-top:12px" onclick="doSetup()">Create login</button>
@@ -143,6 +146,7 @@ nav button.on{color:var(--red);font-weight:700}
         <div><label>Fare paid (₹)</label><input type="number" inputmode="decimal" id="f_fare"></div>
         <div><label>Distance (km)</label><input type="number" inputmode="decimal" id="f_km"></div>
         <div class="full"><label>Purpose / work done</label><input id="f_purp" placeholder="e.g. Annual inspection of Kolar HO"></div>
+        <div class="full"><label class="chk"><input type="checkbox" id="f_endHQ"> Return journey – reached HQ (tour ends here)</label></div>
         <div class="full"><label>Remarks</label><textarea id="f_rem" rows="2" placeholder="e.g. Stayed at IB; BO visit; night halt"></textarea></div>
       </div>
       <div class="row" style="margin-top:12px">
@@ -264,7 +268,7 @@ function showLogin(){
   $('login').classList.remove('hide');$('app').classList.add('hide');$('lg_err').textContent='';
   ['setup','unlock','reset'].forEach(x=>$(x).classList.add('hide'));
   if(!S.user){$('setup').classList.remove('hide');$('su_name').value=S.profile.name||''}
-  else{$('unlock').classList.remove('hide');$('lg_name').textContent=S.user.name;$('lg_pin').value='';setTimeout(()=>$('lg_pin').focus(),100)}
+  else{$('su_hq').value=S.profile.hq||'';$('unlock').classList.remove('hide');$('lg_name').textContent=S.user.name;$('lg_pin').value='';setTimeout(()=>$('lg_pin').focus(),100)}
 }
 window.doSetup=()=>{
   const n=$('su_name').value.trim(),p=$('su_pin').value,p2=$('su_pin2').value,r=$('su_rec').value.trim().toLowerCase();
@@ -272,6 +276,7 @@ window.doSetup=()=>{
   if(!/^\d{4}$/.test(p))return lerr('PIN must be 4 digits');
   if(p!==p2)return lerr('PINs do not match');
   if(r.length<3)return lerr('Recovery word: at least 3 letters');
+  if(!$('su_hq').value.trim())return lerr('Enter your Headquarters');S.profile.hq=$('su_hq').value.trim();
   S.user={name:n,pin:h(p),rec:h(r)};if(!S.profile.name)S.profile.name=n;persist();enter();
 };
 window.doLogin=()=>{if(h($('lg_pin').value)===S.user.pin)enter();else{lerr('Wrong PIN');$('lg_pin').value=''}};
@@ -309,17 +314,19 @@ window.openForm=(e)=>{
   $('f_del').classList.toggle('hide',!e);$('f_err').textContent='';
   const last=entries().slice(-1)[0];
   const d=e||{fs:last?last.ts:S.profile.hq,ts:'',fd:defDate(),ft:'',td:'',tt:'',mode:last?last.mode:'Bus',cls:last?last.cls:'Ordinary',fare:'',km:'',purp:'',rem:''};
-  FF.forEach(k=>$('f_'+k).value=d[k]||'');if(!e)$('f_td').value=d.fd;
+  FF.forEach(k=>$('f_'+k).value=d[k]||'');if(!e)$('f_td').value=d.fd;$('f_endHQ').checked=e?endsHQ(e):false;
   $('form').classList.remove('hide');$('quick').classList.add('hide');$('fab').classList.add('hide');
   window.scrollTo(0,0);
 };
 window.openReturn=()=>{const l=entries().slice(-1)[0];if(!l)return openForm();
-  openForm();Object.entries({fs:l.ts,ts:l.fs,fd:l.td,td:l.td,mode:l.mode,cls:l.cls,fare:l.fare,km:l.km,purp:'Return to HQ'}).forEach(([k,v])=>$('f_'+k).value=v||'')};
+  openForm();Object.entries({fs:l.ts,ts:l.fs,fd:l.td,td:l.td,mode:l.mode,cls:l.cls,fare:l.fare,km:l.km,purp:'Return to HQ'}).forEach(([k,v])=>$('f_'+k).value=v||'');$('f_endHQ').checked=isHQ(l.fs)};
+$('f_ts').addEventListener('input',()=>{$('f_endHQ').checked=isHQ($('f_ts').value)});
 function defDate(){const t=new Date().toISOString().slice(0,10);return t.slice(0,7)===cur?t:cur+'-01'}
 window.closeForm=()=>{$('form').classList.add('hide');$('quick').classList.remove('hide');if(!$('tab_diary').classList.contains('hide'))$('fab').classList.remove('hide');editId=null};
 $('f_fd').addEventListener('change',()=>{if(!$('f_td').value||$('f_td').value<$('f_fd').value)$('f_td').value=$('f_fd').value});
 window.saveEntry=()=>{
-  const d={};FF.forEach(k=>d[k]=$('f_'+k).value.trim());
+  if(!S.profile.hq.trim())return $('f_err').textContent='First set your Headquarters in Settings';
+  const d={};FF.forEach(k=>d[k]=$('f_'+k).value.trim());d.endHQ=$('f_endHQ').checked;
   if(!d.fs||!d.ts)return $('f_err').textContent='Enter From and To stations';
   if(!d.fd)return $('f_err').textContent='Enter departure date';
   if(!d.td)d.td=d.fd;
@@ -345,19 +352,29 @@ const dkey=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${St
 function toast(t){const x=$('toast');x.textContent=t;x.classList.add('on');clearTimeout(x._t);x._t=setTimeout(()=>x.classList.remove('on'),2200)}
 
 /* ---------- calculation ---------- */
-function absences(L){
-  const hq=S.profile.hq;const out=[];let start=null;
+/* A tour = departure from HQ ... (any intermediate journeys) ... arrival back at HQ.
+   DA runs from the departure time from HQ to the arrival time at HQ on the return journey. */
+const nrm=x=>String(x||'').toLowerCase().replace(/\b(ho|so|bo|po|hq|sub ?office|head ?office)\b/g,'').replace(/[^a-z]/g,'');
+function isHQ(st){const a=nrm(st),b=nrm(S.profile.hq);return !!a&&!!b&&(a===b||(a.length>=4&&b.startsWith(a))||(b.length>=4&&a.startsWith(b)))}
+const endsHQ=l=>l.endHQ!==undefined&&l.endHQ!==''?!!l.endHQ:isHQ(l.ts);
+function tours(L){
+  const out=[];let T=null;
+  const close=ok=>{const last=T.legs[T.legs.length-1];T.end=dt(last.td,last.tt);T.ok=ok;out.push(T);T=null};
   L.forEach(l=>{const dep=dt(l.fd,l.ft),arr=dt(l.td,l.tt);if(!dep||!arr)return;
-    if(start===null)start=dep;
-    if(same(l.ts,hq)){out.push([start,arr]);start=null}});
-  if(start!==null){const l=L[L.length-1];const e=dt(l.td,l.tt);if(e>start)out.push([start,e])}
+    if(T&&isHQ(l.fs))close(false);          // new tour began from HQ but the previous return was not entered
+    if(!T)T={start:dep,legs:[],fromHQ:isHQ(l.fs)};
+    T.legs.push(l);
+    if(endsHQ(l))close(true)});
+  if(T)close(false);
+  out.forEach((t,i)=>{t.no=i+1;t.h=(t.end-t.start)/36e5});
   return out;
 }
+function absences(L){return tours(L).map(t=>[t.start,t.end,t.no])}
 function daCalc(L){
   const rate=num(S.profile.darate);const days=[];
-  absences(L).forEach(([s,e])=>{let c=new Date(s);
+  absences(L).forEach(([s,e,no])=>{let c=new Date(s);
     while(c<e){const mid=new Date(c);mid.setHours(24,0,0,0);const end=e<mid?e:mid;const hrs=(end-c)/36e5;const k=dkey(c);
-      const ex=days.find(x=>x.d===k);if(ex)ex.h+=hrs;else days.push({d:k,h:hrs});c=end}});
+      const ex=days.find(x=>x.d===k);if(ex){ex.h+=hrs;if(!ex.t.includes(no))ex.t.push(no)}else days.push({d:k,h:hrs,t:[no]});c=end}});
   days.forEach(x=>{x.pct=x.h>12?100:x.h>=6?70:30;x.amt=Math.round(rate*x.pct)/100});
   return days;
 }
@@ -370,7 +387,7 @@ function totals(m=cur){
   const rma=Math.round(km*rate*100)/100;
   const da=daCalc(L),daAmt=da.reduce((a,x)=>a+x.amt,0),oth=num(M.oth),adv=num(M.adv);
   const gross=Math.round((fare+rma+daAmt+oth)*100)/100;
-  return {L,M,fare,km,rma,capped,da,daAmt,oth,adv,gross,net:Math.round((gross-adv)*100)/100};
+  return {L,M,T:tours(L),fare,km,rma,capped,da,daAmt,oth,adv,gross,net:Math.round((gross-adv)*100)/100};
 }
 
 /* ---------- render ---------- */
@@ -378,14 +395,18 @@ function renderAll(){
   const t=totals();
   $('hdrsub').textContent=mname(cur)+' · '+(S.profile.name||'');
   $('stats').innerHTML=`<div class="stat"><b>${t.L.length}</b><span>journeys</span></div>
-    <div class="stat"><b>${t.da.length}</b><span>days on tour</span></div>
+    <div class="stat"><b>${t.T.length}</b><span>tours · ${t.da.length} DA days</span></div>
     <div class="stat"><b>${Math.round(t.net).toLocaleString('en-IN')}</b><span>net claim ₹</span></div>`;
   // diary grouped by date
-  if(!t.L.length){$('diary').innerHTML=`<div class="empty">No tour entries for ${mname(cur)}.<br>Tap <b>+</b> to add a journey.</div>`}
-  else{let html='',last='';
-    t.L.forEach(l=>{if(l.fd!==last){last=l.fd;const d=new Date(l.fd+'T00:00');
+  const hqWarn=S.profile.hq.trim()?'':`<div class="tour bad">Set your <b>Headquarters</b> in Settings – tours start and end there.</div>`;
+  if(!t.L.length){$('diary').innerHTML=hqWarn+`<div class="empty">No tour entries for ${mname(cur)}.<br>Tap <b>+</b> to add a journey.</div>`}
+  else{let html=hqWarn,last='';const tf=x=>x.toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:false});
+    t.L.forEach(l=>{const T=t.T.find(x=>x.legs[0]===l);
+      if(T){last='';const da=t.da.filter(x=>x.t.includes(T.no)).reduce((a,x)=>a+x.amt,0);
+        html+=`<div class="tour${T.ok&&T.fromHQ?'':' bad'}"><b>Tour ${T.no}</b> · left HQ ${tf(T.start)} → ${T.ok?'reached HQ '+tf(T.end):'<b>return to HQ not entered</b>'}<br><span class="note">${T.legs.length} journey${T.legs.length>1?'s':''} · ${T.h.toFixed(1)} h away · DA ${rs(da)}${T.fromHQ?'':' · <b>first journey is not from HQ</b>'}</span></div>`}
+      if(l.fd!==last){last=l.fd;const d=new Date(l.fd+'T00:00');
         const da=t.da.find(x=>x.d===l.fd);
-        html+=`<div class="day">${d.toLocaleDateString('en-IN',{weekday:'short',day:'2-digit',month:'short'})}${da?` · DA ${da.pct}%`:''}</div>`}
+        html+=`<div class="day">${d.toLocaleDateString('en-IN',{weekday:'short',day:'2-digit',month:'short'})}${da?` · DA ${da.pct}% (${da.h.toFixed(1)} h)`:''}</div>`}
       const amt=isBike(l)?`${num(l.km)} km`:(l.fare?'₹'+num(l.fare):'');
       html+=`<div class="ent" data-id="${l.id}"><div class="t">${esc(l.fs)} ${l.ft||''} → ${esc(l.ts)} ${l.tt||''}${l.td!==l.fd?' ('+fmtD(l.td)+')':''}</div>
       <div class="s">${esc(l.mode)}${amt?' · '+amt:''}${l.purp?' · '+esc(l.purp):''}</div>${l.rem?`<div class="rm">Remarks: ${esc(l.rem)}</div>`:''}</div>`});
@@ -421,7 +442,7 @@ function billHTML(){
   const rows=t.L.map((l,i)=>`<tr><td class="c">${i+1}</td><td>${esc(l.fs)}</td><td class="c">${fmtD(l.fd)}</td><td class="c">${l.ft}</td>
     <td>${esc(l.ts)}</td><td class="c">${fmtD(l.td)}</td><td class="c">${l.tt}</td><td>${esc(l.mode)}</td><td>${esc(l.cls)}</td>
     <td class="r">${isBike(l)?'—':num(l.fare).toFixed(2)}</td><td class="r">${l.km||''}</td><td>${esc(l.purp)}</td><td>${esc(l.rem)}</td></tr>`).join('');
-  const darows=t.da.map((x,i)=>`<tr><td class="c">${i+1}</td><td class="c">${fmtD(x.d)}</td><td class="c">${x.h.toFixed(1)}</td><td class="c">${x.pct}%</td><td class="r">${x.amt.toFixed(2)}</td></tr>`).join('')||'<tr><td colspan="5" class="c">Nil</td></tr>';
+  const darows=t.da.map((x,i)=>`<tr><td class="c">${i+1}</td><td class="c">${fmtD(x.d)}</td><td class="c">${x.t.join(', ')}</td><td class="c">${x.h.toFixed(1)}</td><td class="c">${x.pct}%</td><td class="r">${x.amt.toFixed(2)}</td></tr>`).join('')||'<tr><td colspan="6" class="c">Nil</td></tr>';
   return `
   <p class="r" style="font-size:9pt;margin:0">T.R. 25-A / G.A.R. 14-A</p>
   <h3>DEPARTMENT OF POSTS, INDIA</h3>
@@ -453,8 +474,13 @@ function billHTML(){
    <tr><td><b>Net amount claimed</b></td><td class="r"><b>${t.net.toFixed(2)}</b></td></tr>
   </table>
   <p class="cert">(${words(t.net)})</p>
+  <p class="cert"><b>Tour-wise absence from Headquarters</b></p>
+  <table>
+   <tr><th>Tour</th><th>Left HQ (date &amp; time)</th><th>Returned to HQ (date &amp; time)</th><th>Journeys</th><th>Hours</th><th>DA (₹)</th></tr>
+   ${t.T.map(T=>`<tr><td class="c">${T.no}</td><td class="c">${fmtD(dkey(T.start))} ${T.start.toTimeString().slice(0,5)}</td><td class="c">${T.ok?fmtD(dkey(T.end))+' '+T.end.toTimeString().slice(0,5):'Not returned'}</td><td class="c">${T.legs.length}</td><td class="c">${T.h.toFixed(1)}</td><td class="r">${t.da.filter(x=>x.t.includes(T.no)).reduce((a,x)=>a+x.amt,0).toFixed(2)}</td></tr>`).join('')||'<tr><td colspan="6" class="c">Nil</td></tr>'}
+  </table>
   <table style="width:70%">
-   <tr><th>Sl</th><th>Date</th><th>Hours absent from HQ</th><th>DA %</th><th>Amount (₹)</th></tr>${darows}
+   <tr><th>Sl</th><th>Date</th><th>Tour</th><th>Hours absent from HQ</th><th>DA %</th><th>Amount (₹)</th></tr>${darows}
   </table>
   <p class="cert" style="font-size:9pt">DA rule: absence up to 6 hours – 30%; 6 to 12 hours – 70%; above 12 hours – 100% of the daily rate, per calendar day.</p>
   <p class="cert"><b>Certificates</b></p>
