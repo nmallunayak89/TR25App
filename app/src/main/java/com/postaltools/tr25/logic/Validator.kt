@@ -67,5 +67,5 @@ object Validator {
 
     fun isEmptyJourney(j: com.postaltools.tr25.data.JourneyRow): Boolean =
         listOf(j.depDateTime, j.fromPlace, j.arrDateTime, j.toPlace, j.modeClass, j.fare,
-            j.distanceKm, j.haltDays, j.haltHours, j.purpose, j.remarks).all { it.isBlank() }
+            j.distanceKm, j.haltDays, j.haltHours, j.purpose, j.remarks, j.workType, j.office, j.caseRef).all { it.isBlank() }
 }

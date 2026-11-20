@@ -91,6 +91,10 @@ class TourDaTest {
             "9 h 00 m", "18-11-2026 – 70%"), tours.single())
         val diary = TourReport.diaryRows(b.journeys)
         assertEquals(2, diary.size)
-        assertEquals(listOf("18-11-2026", "08:30", "Gauribidanur", "09:10", "Chikkaballapur"), diary[0].take(5))
+        assertEquals("18-11-2026", diary[0][0])
+        assertEquals("Gauribidanur 08:30 → Chikkaballapur 09:10", diary[0][1])
+        val withWork = b.journeys.mapIndexed { i, x -> if (i == 0) x.copy(workType = "Inspection of Branch Office", office = "Chikkaballapur BO") else x }
+        val sum = TourReport.summary(withWork, t)
+        assertTrue(sum[1], sum[1].startsWith("Inspections / visits: 1 — Chikkaballapur BO"))
     }
 }

@@ -18,7 +18,7 @@ object BillJson {
                     put("arrDateTime", j.arrDateTime); put("toPlace", j.toPlace)
                     put("modeClass", j.modeClass); put("fare", j.fare); put("distanceKm", j.distanceKm)
                     put("haltDays", j.haltDays); put("haltHours", j.haltHours); put("purpose", j.purpose)
-                    put("remarks", j.remarks)
+                    put("remarks", j.remarks); put("workType", j.workType); put("office", j.office); put("caseRef", j.caseRef)
                 })
             }
         })
@@ -79,7 +79,7 @@ object BillJson {
         val journeys = arr("journeys").map {
             JourneyRow(it.s("depDateTime"), it.s("fromPlace"), it.s("arrDateTime"), it.s("toPlace"),
                 it.s("modeClass"), it.s("fare"), it.s("distanceKm"), it.s("haltDays"), it.s("haltHours"), it.s("purpose"),
-                it.s("remarks"))
+                it.s("remarks"), it.s("workType"), it.s("office"), it.s("caseRef"))
         }
         val slabs = arr("daSlabs").map { DaSlab(it.s("days"), it.s("rate")) }
         return TaBill(

@@ -111,7 +111,7 @@ h2{text-align:center;font-size:14pt;margin:4pt 0}</style></head><body><div class
         sb.append("<tr><td><br>Countersigned</td><td></td></tr><tr><td></td><td align=\"right\"><br><br>Signature of Controlling Officer</td></tr></table>")
 
         // -------- Page 5: Calculation of claim
-        sb.append(BR).append("<h2>CALCULATION OF CLAIM</h2>")
+        sb.append(BR).append("<p align=\"right\"><b>ANNEXURE-I</b></p><h2>CALCULATION OF CLAIM</h2>")
         sb.append("<p align=\"center\">T.A. Bill for Tour — ${e(b.name)}, ${e(b.designation)}, HQ: ${e(b.headquarters)}</p>")
         val rows = mutableListOf<List<String>>()
         rows += listOf("1. Fare by rail / air / bus / other conveyance (actuals)", Money.format(t.fare))
@@ -134,19 +134,22 @@ h2{text-align:center;font-size:14pt;margin:4pt 0}</style></head><body><div class
         sb.append(table(listOf("Particulars", "Amount (Rs.)"), rows))
         sb.append("<p>(${Words.rupees(t.net)})</p><br><br>")
         sb.append("<table $N><tr><td>Date: ${e(b.claimDate)}</td><td align=\"right\">Signature of the Govt. Servant</td></tr></table>")
-        // -------- Page 6: Tour movement & diary
+        // -------- Annexure-II: Tour movement, Annexure-III: Tour diary
         val tr = com.postaltools.tr25.logic.TourReport
         val diary = tr.diaryRows(b.journeys)
         if (diary.isNotEmpty()) {
-            sb.append(BR).append("<h2>TOUR MOVEMENT &amp; DIARY</h2>")
-            sb.append("<p align=\"center\">${e(b.name)}, ${e(b.designation)}, HQ: ${e(b.headquarters)}</p>")
-            sb.append("<p><b>A. Tour movement (departure from HQ to arrival back at HQ)</b></p>")
+            val who = "<p align=\"center\">${e(b.name)}, ${e(b.designation)}, HQ: ${e(b.headquarters)}</p>"
+            val sign = "<br><br><table $N><tr><td>Date: ${e(b.claimDate)}</td><td align=\"right\">Signature of the Govt. Servant</td></tr></table>"
+            sb.append(BR).append("<p align=\"right\"><b>ANNEXURE-II</b></p><h2>TOUR MOVEMENT</h2>").append(who)
+            sb.append("<p><i>Departure from headquarters to arrival back at headquarters</i></p>")
             sb.append(table(tr.tourHead, tr.tourRows(t).map { r -> r.map { e(it) } }))
-            sb.append("<p><i>DA per calendar day of absence from HQ: up to 6 hours 30%, 6 to 12 hours 70%, above 12 hours 100%.</i></p>")
-            sb.append("<p><b>B. Tour diary (day-to-day journeys)</b></p>")
+            sb.append("<p><i>DA per calendar day of absence from HQ: up to 6 hours 30%, 6 to 12 hours 70%, above 12 hours 100%.</i></p>").append(sign)
+            sb.append(BR).append("<p align=\"right\"><b>ANNEXURE-III</b></p><h2>TOUR DIARY</h2>").append(who)
+            sb.append("<p><i>Inspections, cases and other work done on tour</i></p>")
             sb.append(table(tr.diaryHead, diary.map { r -> r.map { e(it) } }))
-            sb.append("<p>Certified that the above tours were performed on duty.</p><br><br>")
-            sb.append("<table $N><tr><td>Date: ${e(b.claimDate)}</td><td align=\"right\">Signature of the Govt. Servant</td></tr></table>")
+            sb.append("<p><b>Summary</b></p>")
+            tr.summary(b.journeys, t).forEach { sb.append("<p>${e(it)}</p>") }
+            sb.append("<p>Certified that the above tours were performed and the work noted was done on duty.</p>").append(sign)
         }
         sb.append("</div></body></html>")
         return "﻿" + sb.toString()

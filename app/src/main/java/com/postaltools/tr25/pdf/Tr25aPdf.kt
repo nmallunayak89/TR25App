@@ -219,6 +219,7 @@ object Tr25aPdf {
 
         // ---------------- CALCULATION OF CLAIM (separate page) ----------------
         w.newPage()
+        w.paragraph("ANNEXURE-I", 9f, bold = true, align = Layout.Alignment.ALIGN_OPPOSITE, after = 0f)
         w.paragraph("CALCULATION OF CLAIM", 13f, bold = true, align = CENTER, after = 2f)
         w.paragraph("T.A. Bill for Tour — ${b.name}, ${b.designation}, HQ: ${b.headquarters}" +
             (if (b.subBillNo.isNotBlank()) " — Sub-Bill No. ${b.subBillNo}" else ""), 8.5f, align = CENTER, after = 8f)
@@ -253,20 +254,32 @@ object Tr25aPdf {
         w.paragraph("(${com.postaltools.tr25.logic.Words.rupees(t.net)})", 9f, after = 6f)
         w.signatureRow("Date: ${b.claimDate}", "Signature of the Govt. Servant", space = 34f)
 
-        // ---------------- TOUR MOVEMENT & DIARY (separate page) ----------------
-        val diary = com.postaltools.tr25.logic.TourReport.diaryRows(b.journeys)
+        // ---------------- ANNEXURE-II: TOUR MOVEMENT, ANNEXURE-III: TOUR DIARY ----------------
+        val tr = com.postaltools.tr25.logic.TourReport
+        val diary = tr.diaryRows(b.journeys)
         if (diary.isNotEmpty()) {
-            w.newPage()
-            w.paragraph("TOUR MOVEMENT & DIARY", 13f, bold = true, align = CENTER, after = 2f)
-            w.paragraph("${b.name}, ${b.designation}, HQ: ${b.headquarters}", 8.5f, align = CENTER, after = 8f)
-            w.paragraph("A. Tour movement (departure from HQ to arrival back at HQ)", 9.5f, bold = true, after = 4f)
-            val tr = com.postaltools.tr25.logic.TourReport
-            w.table(tr.tourHead.zip(tr.tourWeights).map { (h, wt) -> PdfWriter.Col(h, wt) }, tr.tourRows(t).ifEmpty { listOf(listOf("", "Nil", "", "", "", "")) }, size = 8f)
+            fun head(no: String, title: String) {
+                w.newPage()
+                w.paragraph(no, 9f, bold = true, align = Layout.Alignment.ALIGN_OPPOSITE, after = 0f)
+                w.paragraph(title, 13f, bold = true, align = CENTER, after = 2f)
+                w.paragraph("${b.name}, ${b.designation}, HQ: ${b.headquarters}" +
+                    (if (b.subBillNo.isNotBlank()) " — Sub-Bill No. ${b.subBillNo}" else ""), 8.5f, align = CENTER, after = 8f)
+            }
+            head("ANNEXURE-II", "TOUR MOVEMENT")
+            w.paragraph("Departure from headquarters to arrival back at headquarters", 9f, italic = true, after = 4f)
+            w.table(tr.tourHead.zip(tr.tourWeights).map { (h, wt) -> PdfWriter.Col(h, wt) },
+                tr.tourRows(t).ifEmpty { listOf(listOf("", "Nil", "", "", "", "")) }, size = 8f)
             w.paragraph("DA per calendar day of absence from HQ: up to 6 hours 30%, 6 to 12 hours 70%, above 12 hours 100%.",
-                7.5f, italic = true, after = 10f)
-            w.paragraph("B. Tour diary (day-to-day journeys)", 9.5f, bold = true, after = 4f)
+                7.5f, italic = true, after = 6f)
+            w.signatureRow("Date: ${b.claimDate}", "Signature of the Govt. Servant", space = 30f)
+
+            head("ANNEXURE-III", "TOUR DIARY")
+            w.paragraph("Inspections, cases and other work done on tour", 9f, italic = true, after = 4f)
             w.table(tr.diaryHead.zip(tr.diaryWeights).map { (h, wt) -> PdfWriter.Col(h, wt) }, diary, size = 7.5f)
-            w.paragraph("Certified that the above tours were performed on duty.", 8.5f, after = 4f)
+            w.paragraph("Summary", 9.5f, bold = true, after = 2f)
+            tr.summary(b.journeys, t).forEach { w.paragraph(it, 8.5f, after = 2f) }
+            w.gap(4f)
+            w.paragraph("Certified that the above tours were performed and the work noted was done on duty.", 8.5f, after = 4f)
             w.signatureRow("Date: ${b.claimDate}", "Signature of the Govt. Servant", space = 30f)
         }
 

@@ -52,6 +52,10 @@ val MODES = listOf(
     "Own motor cycle (RMA)", "Own vehicle", "Departmental vehicle",
 )
 val PURPOSES = listOf("Inspection", "Training", "Official meeting", "Investigation", "Audit", "Return to headquarters")
+val WORK_TYPES = listOf(
+    "Annual inspection of Post Office", "Inspection of Branch Office", "Surprise visit", "Inquiry / Case",
+    "Complaint enquiry", "Mail verification", "Verification of accounts", "Meeting", "Training", "Other work",
+)
 val TRAIN_TYPES = listOf("Mail", "Express", "Superfast", "Ordinary")
 val CONVEYANCE = listOf(
     "Govt. transport", "Taxi", "Single seat in bus", "Other public conveyance",
@@ -142,6 +146,10 @@ fun JourneysTab(vm: EditorViewModel) {
                 }
                 SuggestField("(9) Purpose of journey", j.purpose, PURPOSES, { v -> upd { it.copy(purpose = v) } })
                 Field("Remarks", j.remarks, { v -> upd { it.copy(remarks = v) } }, singleLine = false)
+                Text("Tour diary", style = MaterialTheme.typography.labelLarge)
+                SuggestField("Work type", j.workType, WORK_TYPES, { v -> upd { it.copy(workType = v) } })
+                Field("Office / establishment", j.office, { v -> upd { it.copy(office = v) } })
+                Field("Case No. / reference", j.caseRef, { v -> upd { it.copy(caseRef = v) } })
             }
         }
         TourSummary(vm.totals, b.headquarters)

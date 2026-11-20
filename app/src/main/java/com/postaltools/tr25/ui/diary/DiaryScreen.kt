@@ -139,6 +139,9 @@ fun DiaryScreen(onBack: () -> Unit, onCreateBill: (String) -> Unit) {
                             Field("Distance Km", d.distanceKm, { v -> upd { it.copy(distanceKm = v) } },
                                 kind = FieldKind.NUMBER, modifier = Modifier.weight(1f))
                         }
+                        SuggestField("Work type", d.workType, com.postaltools.tr25.ui.edit.WORK_TYPES, { v -> upd { it.copy(workType = v) } })
+                        Field("Office / establishment inspected or visited", d.office, { v -> upd { it.copy(office = v) } })
+                        Field("Case No. / reference (if any)", d.caseRef, { v -> upd { it.copy(caseRef = v) } })
                         SuggestField("Purpose / work done", d.purpose, PURPOSES, { v -> upd { it.copy(purpose = v) } })
                         Field("Remarks", d.remarks, { v -> upd { it.copy(remarks = v) } }, singleLine = false)
                         var err by remember { mutableStateOf("") }
@@ -217,6 +220,9 @@ fun DiaryScreen(onBack: () -> Unit, onCreateBill: (String) -> Unit) {
                                         Money.parse(j.fare)?.takeIf { it.signum() > 0 }?.let { "₹" + Money.format(it) } ?: "",
                                         if (j.distanceKm.isNotBlank()) "${j.distanceKm} km" else "", j.purpose)
                                         .filter { it.isNotBlank() }.joinToString(" · "), style = MaterialTheme.typography.bodyMedium)
+                                    val work = listOf(j.workType, j.office, if (j.caseRef.isNotBlank()) "Case: ${j.caseRef}" else "")
+                                        .filter { it.isNotBlank() }.joinToString(" · ")
+                                    if (work.isNotBlank()) Text(work, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                                     if (j.remarks.isNotBlank()) Text("Remarks: ${j.remarks}", style = MaterialTheme.typography.bodyMedium)
                                 }
                             }

@@ -23,6 +23,9 @@ data class JourneyRow(
     val haltHours: String = "",     // (8) Duration of halt – Hours
     val purpose: String = "",       // (9) Purpose of journey
     val remarks: String = "",       // Remarks (printed with the purpose)
+    val workType: String = "",      // Tour diary: inspection / case / visit …
+    val office: String = "",        // Tour diary: office or establishment
+    val caseRef: String = "",       // Tour diary: case No. / reference
 )
 
 /** Item 9: hotel / establishment stay where higher DA is claimed. */

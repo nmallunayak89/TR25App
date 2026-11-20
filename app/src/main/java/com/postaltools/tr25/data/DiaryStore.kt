@@ -15,7 +15,8 @@ class DiaryStore(context: Context) {
             val o = a.getJSONObject(i)
             fun s(k: String) = o.optString(k, "")
             JourneyRow(s("depDateTime"), s("fromPlace"), s("arrDateTime"), s("toPlace"), s("modeClass"), s("fare"),
-                s("distanceKm"), s("haltDays"), s("haltHours"), s("purpose"), s("remarks"))
+                s("distanceKm"), s("haltDays"), s("haltHours"), s("purpose"), s("remarks"),
+                s("workType"), s("office"), s("caseRef"))
         }
     }.getOrDefault(emptyList())
 
@@ -28,6 +29,7 @@ class DiaryStore(context: Context) {
                 put("modeClass", j.modeClass); put("fare", j.fare); put("distanceKm", j.distanceKm)
                 put("haltDays", j.haltDays); put("haltHours", j.haltHours)
                 put("purpose", j.purpose); put("remarks", j.remarks)
+                put("workType", j.workType); put("office", j.office); put("caseRef", j.caseRef)
             })
         }
         file.writeText(a.toString())
