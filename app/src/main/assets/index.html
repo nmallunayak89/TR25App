@@ -656,30 +656,7 @@ ${PB}<p class="c">3</p>
 <br><br>
 <table ${NB}><tr><td>Date : ................................</td><td class="r">................................................<br>Signature of the Government Servant<br>${v(P.name)}, ${v(P.desig)}</td></tr></table>
 
-<!-- ================= PAGE 4 ================= -->
-${PB}<p class="c">4</p>
-<p class="c"><b>PART – B</b> (To be filled in by the Bill Section)</p>
-<table ${TB}>
- <colgroup><col width="6%"><col width="74%"><col width="13%"><col width="7%"></colgroup>
- <tr><td>1.</td><td>The net entitlement on account of travelling allowance works out to Rs. ........................ as detailed below :–</td><th>Rs.</th><th>P.</th></tr>
- <tr><td>a)</td><td>Railways / Air / Bus / Steamer fare :</td><td></td><td></td></tr>
- <tr><td>b)</td><td>Road mileage for ............ Kms @ Rs. ............ Per / Km.</td><td></td><td></td></tr>
- <tr><td>c)</td><td>Daily allowance :</td><td></td><td></td></tr>
- ${['i','ii','iii','iv'].map(r=>`<tr><td class="r">${r})</td><td>............ days @ Rs. ............ per day</td><td></td><td></td></tr>`).join('')}
- <tr><td>d)</td><td>Actual Expenses :</td><td></td><td></td></tr>
- <tr><td></td><td class="r"><b>Gross Amount</b></td><td></td><td></td></tr>
- <tr><td>e)</td><td>Less amount of T.A. advance, if any, drawn vide voucher No. .............. date ..............</td><td></td><td></td></tr>
- <tr><td></td><td class="r"><b>Net Amount</b></td><td></td><td></td></tr>
-</table>
-<br>
-<table ${NB}><tr><td style="width:6%">2.</td><td>The expenditure is debitable to ${D}</td></tr></table>
-<br><br><br>
-<table ${NB}>
- <tr><td style="width:50%;vertical-align:bottom">Initials of Bill Clerk.</td><td class="r">................................................<br>Signature of Drawing &amp; Disbursing Officer</td></tr>
- <tr><td colspan="2" class="r"><br><br>Countersigned<br><br><br>................................................<br>Signature of the Controlling Officer</td></tr>
-</table>
-
-<!-- ================= PAGE 5: CALCULATION SHEET ================= -->
+<!-- ================= PAGE 4: CLAIM CALCULATION ================= -->
 ${PB}${calcSheet(t)}`;
 }
 
@@ -687,7 +664,7 @@ function calcSheet(t){
   const P=S.profile,v=x=>esc(x||''),M=t.M;
   const daT=no=>t.da.filter(x=>x.t[0]===no).reduce((a,x)=>a+x.amt,0);
   const sd=d=>fmtD(dkey(d))+' '+tm(d);
-  return `<h2 class="c" style="font-size:14pt;margin:0">CALCULATION SHEET</h2>
+  return `<p class="c">4</p><h2 class="c" style="font-size:14pt;margin:0">CALCULATION OF CLAIM</h2>
   <p class="c">T.A. Bill for Tour – ${mname(cur)}<br>${v(P.name)}, ${v(P.desig)}, HQ: ${v(P.hq)}</p>
   <p><b>A. Calculation of claim</b></p>
   <table ${TB}>
@@ -713,8 +690,7 @@ function calcSheet(t){
    ${t.da.map((x,i)=>`<tr><td class="c">${i+1}</td><td class="c">${fmtD(x.d)}</td><td class="c">${x.t.join(', ')}</td><td class="c">${hm(x.h)}</td><td class="c">${x.pct}%</td><td class="r">${f2(x.amt)}</td></tr>`).join('')||'<tr><td colspan="6" class="c">Nil</td></tr>'}
    <tr><td colspan="5" class="r"><b>Total DA</b></td><td class="r"><b>${f2(t.daAmt)}</b></td></tr>
   </table>
-  <br><br>
-  <table ${NB}><tr><td>Date :</td><td class="r">Signature of the Government Servant</td></tr></table>`;
+  <table ${NB} style="margin-top:24pt"><tr><td>Date :</td><td class="r">Signature of the Government Servant</td></tr></table>`;
 }
 const BILLCSS=p=>`${p}{font-family:"Times New Roman",serif;font-size:10.5pt;color:#000}
 ${p} p{margin:2pt 0;line-height:1.15}${p} h2{font-family:"Times New Roman",serif}

@@ -6,8 +6,8 @@ android {
         applicationId "in.dop.tr25"
         minSdk 21
         targetSdk 34
-        versionCode 7
-        versionName "3.1"
+        versionCode 8
+        versionName "3.2"
     }
     signingConfigs {
         // fixed key so every new build installs over the old one without losing data
