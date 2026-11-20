@@ -661,18 +661,18 @@ ${PB}<p class="c">4</p>
 <p class="c"><b>PART – B</b> (To be filled in by the Bill Section)</p>
 <table ${TB}>
  <colgroup><col width="6%"><col width="74%"><col width="13%"><col width="7%"></colgroup>
- <tr><td>1.</td><td>The net entitlement on account of travelling allowance works out to <b>Rs. ${f2(t.net)}</b> as detailed below :–</td><th>Rs.</th><th>P.</th></tr>
- <tr><td>a)</td><td>Railways / Air / Bus / Steamer fare :</td>${amt(t.fare)}</tr>
- <tr><td>b)</td><td>Road mileage for <b>${t.km}</b> Kms @ Rs. <b>${f2(num(P.rma))}</b> Per / Km.${t.capped?' (limited to '+num(P.rmacap)+' km per day)':''}</td>${amt(t.rma)}</tr>
+ <tr><td>1.</td><td>The net entitlement on account of travelling allowance works out to Rs. ........................ as detailed below :–</td><th>Rs.</th><th>P.</th></tr>
+ <tr><td>a)</td><td>Railways / Air / Bus / Steamer fare :</td><td></td><td></td></tr>
+ <tr><td>b)</td><td>Road mileage for ............ Kms @ Rs. ............ Per / Km.</td><td></td><td></td></tr>
  <tr><td>c)</td><td>Daily allowance :</td><td></td><td></td></tr>
- ${[0,1,2,3].map(i=>{const g=G[i];return `<tr><td class="r">${roman[i]})</td><td>${g?`<b>${g.n}</b> day${g.n>1?'s':''} @ Rs. <b>${f2(g.per)}</b> per day (${g.pct}% of Rs. ${f2(num(P.darate))})`:'........ days @ Rs. ........ per day'}</td>${amt(g?g.amt:0,!!g)}</tr>`}).join('')}
- <tr><td>d)</td><td>Actual Expenses : ${M.othd?'('+v(M.othd)+')':''}</td>${amt(t.oth,t.oth>0)}</tr>
- <tr><td></td><td class="r"><b>Gross Amount</b></td><td class="r"><b>${RS(t.gross)}</b></td><td class="r"><b>${PS(t.gross)}</b></td></tr>
- <tr><td>e)</td><td>Less amount of T.A. advance, if any, drawn vide voucher No. ${v(M.vno)||'..........'} date ${M.vdate?fmtD(M.vdate):'..........'}</td>${amt(t.adv,t.adv>0)}</tr>
- <tr><td></td><td class="r"><b>Net Amount</b></td><td class="r"><b>${RS(t.net)}</b></td><td class="r"><b>${PS(t.net)}</b></td></tr>
+ ${['i','ii','iii','iv'].map(r=>`<tr><td class="r">${r})</td><td>............ days @ Rs. ............ per day</td><td></td><td></td></tr>`).join('')}
+ <tr><td>d)</td><td>Actual Expenses :</td><td></td><td></td></tr>
+ <tr><td></td><td class="r"><b>Gross Amount</b></td><td></td><td></td></tr>
+ <tr><td>e)</td><td>Less amount of T.A. advance, if any, drawn vide voucher No. .............. date ..............</td><td></td><td></td></tr>
+ <tr><td></td><td class="r"><b>Net Amount</b></td><td></td><td></td></tr>
 </table>
-<p>(${words(t.net)})</p>
-<table ${NB}><tr><td style="width:6%">2.</td><td>The expenditure is debitable to ${v(M.debit)||D}</td></tr></table>
+<br>
+<table ${NB}><tr><td style="width:6%">2.</td><td>The expenditure is debitable to ${D}</td></tr></table>
 <br><br><br>
 <table ${NB}>
  <tr><td style="width:50%;vertical-align:bottom">Initials of Bill Clerk.</td><td class="r">................................................<br>Signature of Drawing &amp; Disbursing Officer</td></tr>
@@ -684,40 +684,37 @@ ${PB}${calcSheet(t)}`;
 }
 
 function calcSheet(t){
-  const P=S.profile,rate=num(P.darate),v=x=>esc(x||'');
-  let h=`<h2 class="c" style="font-size:14pt;margin:0">CALCULATION SHEET</h2>
-  <p class="c">T.A. Bill for Tour – ${mname(cur)}<br>${v(P.name)}, ${v(P.desig)}, HQ: ${v(P.hq)}</p><hr>`;
-  // 1. DA
-  h+=`<p><b>1. Daily Allowance</b> – DA rate Rs. ${f2(rate)} per day. Absence from HQ per calendar day: up to 6 h = 30%, 6 to 12 h = 70%, above 12 h = 100%.</p>`;
-  t.T.forEach(T=>{
-    const route=[T.legs[0].fs].concat(T.legs.map(l=>l.ts)).map(esc).join(' → ');
-    h+=`<p style="margin-left:14pt"><b>Tour ${T.no}:</b> ${route}<br>Left HQ ${fmtD(dkey(T.start))} at ${tm(T.start)}, ${T.ok?`reached HQ ${fmtD(dkey(T.end))} at ${tm(T.end)}`:`<b>return to HQ not entered</b> (taken up to ${fmtD(dkey(T.end))} ${tm(T.end)})`} = ${hm(T.h)} away.</p>`;
-    let c=new Date(T.start);
-    while(c<T.end){const mid=new Date(c);mid.setHours(24,0,0,0);const e=T.end<mid?T.end:mid;const k=dkey(c);const d=t.da.find(x=>x.d===k);
-      const segH=(e-c)/36e5,multi=d&&d.t.length>1;
-      h+=`<p style="margin-left:28pt">${fmtD(k)}: ${tm(c)} to ${e.getTime()===mid.getTime()?'24:00':tm(e)} = ${hm(segH)}${multi?` (with other tour on this day, total ${hm(d.h)})`:''} → ${d.pct}% × Rs. ${f2(rate)} = <b>Rs. ${f2(d.amt)}</b>${multi&&d.t[0]!==T.no?' (already counted above)':''}</p>`;
-      c=e}
-  });
-  h+=`<p style="margin-left:14pt">Total DA = ${t.da.map(x=>f2(x.amt)).join(' + ')||'0'} = <b>Rs. ${f2(t.daAmt)}</b></p>`;
-  // 2. Fare
-  const fl=t.L.filter(l=>!isBike(l)&&num(l.fare)>0);
-  h+=`<p><b>2. Fare paid</b> (bus / train / other conveyance, actuals)</p>`;
-  h+=fl.length?`<p style="margin-left:14pt">${fl.map(l=>`${fmtD(l.fd)} ${esc(l.fs)} → ${esc(l.ts)} (${esc(l.mode)}) Rs. ${f2(num(l.fare))}`).join('<br>')}</p><p style="margin-left:14pt">Total fare = ${fl.map(l=>f2(num(l.fare))).join(' + ')} = <b>Rs. ${f2(t.fare)}</b></p>`:`<p style="margin-left:14pt">Nil</p>`;
-  // 3. RMA
-  const cap=num(P.rmacap)||Infinity,byDay={};t.L.filter(isBike).forEach(l=>(byDay[l.fd]=byDay[l.fd]||[]).push(num(l.km)));
-  h+=`<p><b>3. Road Mileage Allowance</b> (own motor cycle) – Rs. ${f2(num(P.rma))} per km${isFinite(cap)?`, limited to ${cap} km per day`:''}</p>`;
-  const dk=Object.keys(byDay).sort();
-  h+=dk.length?`<p style="margin-left:14pt">${dk.map(d=>{const s=byDay[d].reduce((a,b)=>a+b,0);return `${fmtD(d)}: ${byDay[d].join(' + ')} = ${s} km${s>cap?` → limited to ${cap} km`:''}`}).join('<br>')}</p>
-   <p style="margin-left:14pt">Total ${t.km} km × Rs. ${f2(num(P.rma))} = <b>Rs. ${f2(t.rma)}</b></p>`:`<p style="margin-left:14pt">Nil</p>`;
-  // 4. Actual
-  h+=`<p><b>4. Actual expenses</b>${t.M.othd?' ('+v(t.M.othd)+')':''} = <b>Rs. ${f2(t.oth)}</b></p>`;
-  // 5. Summary
-  h+=`<hr><p><b>5. Claim</b></p>
-  <p style="margin-left:14pt">Gross = Fare ${f2(t.fare)} + RMA ${f2(t.rma)} + DA ${f2(t.daAmt)} + Actual ${f2(t.oth)} = <b>Rs. ${f2(t.gross)}</b><br>
-  Less T.A. advance = Rs. ${f2(t.adv)}<br>
-  Net amount = ${f2(t.gross)} − ${f2(t.adv)} = <b>Rs. ${f2(t.net)}</b><br>(${words(t.net)})</p>
-  <br><br><table ${NB}><tr><td>Date :</td><td class="r">Signature of the Government Servant</td></tr></table>`;
-  return h;
+  const P=S.profile,v=x=>esc(x||''),M=t.M;
+  const daT=no=>t.da.filter(x=>x.t[0]===no).reduce((a,x)=>a+x.amt,0);
+  const sd=d=>fmtD(dkey(d))+' '+tm(d);
+  return `<h2 class="c" style="font-size:14pt;margin:0">CALCULATION SHEET</h2>
+  <p class="c">T.A. Bill for Tour – ${mname(cur)}<br>${v(P.name)}, ${v(P.desig)}, HQ: ${v(P.hq)}</p>
+  <p><b>A. Calculation of claim</b></p>
+  <table ${TB}>
+   <colgroup><col width="72%"><col width="28%"></colgroup>
+   <tr><th>Particulars</th><th>Amount (Rs.)</th></tr>
+   <tr><td>1. Fare by bus / train / other conveyance (actuals)</td><td class="r">${f2(t.fare)}</td></tr>
+   <tr><td>2. Road Mileage Allowance (own bike): ${t.km} km × Rs. ${f2(num(P.rma))}/km${t.capped?' (limited to '+num(P.rmacap)+' km per day)':''}</td><td class="r">${f2(t.rma)}</td></tr>
+   <tr><td>3. Daily Allowance @ Rs. ${f2(num(P.darate))} per day (details below)</td><td class="r">${f2(t.daAmt)}</td></tr>
+   <tr><td>4. Actual expenses ${M.othd?'('+v(M.othd)+')':''}</td><td class="r">${f2(t.oth)}</td></tr>
+   <tr><td><b>Gross total</b></td><td class="r"><b>${f2(t.gross)}</b></td></tr>
+   <tr><td>Less: TA advance drawn${M.vno?' (voucher No. '+v(M.vno)+(M.vdate?' dt. '+fmtD(M.vdate):'')+')':''}</td><td class="r">${f2(t.adv)}</td></tr>
+   <tr><td><b>Net amount claimed</b></td><td class="r"><b>${f2(t.net)}</b></td></tr>
+  </table>
+  <p>(${words(t.net)})</p>
+  <p><b>B. Tour-wise absence from Headquarters</b></p>
+  <table ${TB}>
+   <tr><th width="7%">Tour</th><th>Route</th><th width="17%">Left HQ</th><th width="17%">Returned to HQ</th><th width="9%">Hours</th><th width="12%">DA (Rs.)</th></tr>
+   ${t.T.map(T=>`<tr><td class="c">${T.no}</td><td>${[T.legs[0].fs].concat(T.legs.map(l=>l.ts)).map(esc).join(' – ')}</td><td class="c">${sd(T.start)}</td><td class="c">${T.ok?sd(T.end):'Not returned'}</td><td class="c">${hm(T.h)}</td><td class="r">${f2(daT(T.no))}</td></tr>`).join('')||'<tr><td colspan="6" class="c">Nil</td></tr>'}
+  </table>
+  <p><b>C. Day-wise Daily Allowance</b> (absence per calendar day: up to 6 h – 30%; 6 to 12 h – 70%; above 12 h – 100%)</p>
+  <table ${TB}>
+   <tr><th width="8%">Sl</th><th>Date</th><th>Tour</th><th>Hours absent from HQ</th><th>DA %</th><th>Amount (Rs.)</th></tr>
+   ${t.da.map((x,i)=>`<tr><td class="c">${i+1}</td><td class="c">${fmtD(x.d)}</td><td class="c">${x.t.join(', ')}</td><td class="c">${hm(x.h)}</td><td class="c">${x.pct}%</td><td class="r">${f2(x.amt)}</td></tr>`).join('')||'<tr><td colspan="6" class="c">Nil</td></tr>'}
+   <tr><td colspan="5" class="r"><b>Total DA</b></td><td class="r"><b>${f2(t.daAmt)}</b></td></tr>
+  </table>
+  <br><br>
+  <table ${NB}><tr><td>Date :</td><td class="r">Signature of the Government Servant</td></tr></table>`;
 }
 const BILLCSS=p=>`${p}{font-family:"Times New Roman",serif;font-size:10.5pt;color:#000}
 ${p} p{margin:2pt 0;line-height:1.15}${p} h2{font-family:"Times New Roman",serif}
