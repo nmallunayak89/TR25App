@@ -1,0 +1,25 @@
+name: Build Windows EXE
+on:
+  push:
+    paths: ['desktop/**', '.github/workflows/build-exe.yml']
+  workflow_dispatch:
+jobs:
+  exe:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - name: Build installer and portable exe
+        working-directory: desktop
+        shell: bash
+        run: |
+          npm install --no-audit --no-fund 2>&1 | tail -5
+          npx electron-builder --win nsis portable --x64 --publish never 2>&1 | tee eb.log || {
+            grep -iE "error|cannot|failed" eb.log | head -30 | while IFS= read -r l; do echo "::error::$l"; done; exit 1; }
+          ls -la dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TR25-Bill-Generator-Windows
+          path: |
+            desktop/dist/*.exe

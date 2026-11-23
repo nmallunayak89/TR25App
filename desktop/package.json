@@ -1,0 +1,26 @@
+{
+  "name": "tr25-bill-generator",
+  "productName": "TR-25 Bill Generator",
+  "version": "3.0.0",
+  "description": "TR-25A TA bill, Tour Diary and Tour Moment reports for postal officials (offline)",
+  "author": "Mallikarjuna, Inspector Posts",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win nsis portable --x64 --publish never"
+  },
+  "devDependencies": {
+    "electron": "33.2.1",
+    "electron-builder": "25.1.8"
+  },
+  "build": {
+    "appId": "in.dop.tr25.desktop",
+    "productName": "TR-25 Bill Generator",
+    "files": ["main.js", "preload.js", "app/**", "build/icon.png"],
+    "directories": { "output": "dist", "buildResources": "build" },
+    "win": { "target": ["nsis", "portable"], "icon": "build/icon.png" },
+    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true, "createDesktopShortcut": true, "shortcutName": "TR-25 Bill Generator" },
+    "portable": { "artifactName": "TR-25-Bill-Generator-Portable-${version}.exe" },
+    "artifactName": "TR-25-Bill-Generator-Setup-${version}.${ext}"
+  }
+}
