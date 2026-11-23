@@ -95,6 +95,13 @@ fun AppNav() {
             com.postaltools.tr25.ui.diary.DiaryScreen(
                 onBack = { nav.popBackStack() },
                 onCreateBill = { m -> nav.navigate(Routes.edit(0, m)) },
+                onReports = { m -> nav.navigate("reports/$m") },
+            )
+        }
+        composable("reports/{month}", arguments = listOf(navArgument("month") { type = NavType.StringType })) { entry ->
+            com.postaltools.tr25.ui.diary.ReportsScreen(
+                month = entry.arguments?.getString("month") ?: "",
+                onBack = { nav.popBackStack() },
             )
         }
         composable(Routes.SETTINGS) {

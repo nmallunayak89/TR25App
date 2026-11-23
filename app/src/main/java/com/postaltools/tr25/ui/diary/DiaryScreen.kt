@@ -5,6 +5,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -64,7 +67,7 @@ fun journeysOf(all: List<JourneyRow>, ym: YearMonth): List<JourneyRow> =
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DiaryScreen(onBack: () -> Unit, onCreateBill: (String) -> Unit) {
+fun DiaryScreen(onBack: () -> Unit, onCreateBill: (String) -> Unit, onReports: (String) -> Unit = {}) {
     val app = LocalContext.current.applicationContext as TrApp
     val hq = remember { app.settings.load().headquarters }
     var all by remember { mutableStateOf(app.diary.load()) }
@@ -72,6 +75,9 @@ fun DiaryScreen(onBack: () -> Unit, onCreateBill: (String) -> Unit) {
     var editing by remember { mutableIntStateOf(-1) }      // index in [all]
     var draft by remember { mutableStateOf<JourneyRow?>(null) }
     var confirmDelete by remember { mutableStateOf(false) }
+    var notes by remember { mutableStateOf(app.reports.loadDays()) }
+    var noteDay by remember { mutableStateOf<java.time.LocalDate?>(null) }
+    var noteText by remember { mutableStateOf("") }
 
     fun persist(list: List<JourneyRow>) { all = list; app.diary.save(list) }
 
@@ -92,9 +98,10 @@ fun DiaryScreen(onBack: () -> Unit, onCreateBill: (String) -> Unit) {
                     }
                 },
                 navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
+                actions = { TextButton(onClick = { onReports(ym.toString()) }) { Text("REPORTS", color = Color.White, fontWeight = FontWeight.Bold) } },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary, titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White,
+                    navigationIconContentColor = Color.White, actionIconContentColor = Color.White,
                 ),
             )
         },
@@ -187,6 +194,29 @@ fun DiaryScreen(onBack: () -> Unit, onCreateBill: (String) -> Unit) {
                 }
             }
 
+            // Day-wise diary details (printed in the Diary report)
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text("Daily diary – details of each day", fontWeight = FontWeight.Bold)
+                    Text("Tap a day to write what was done. Days left blank are filled from the journeys, \"At HQ\" or \"Sunday Off\".",
+                        style = MaterialTheme.typography.bodySmall)
+                    val dn = DateTimeFormatter.ofPattern("dd-MM EEE", java.util.Locale.ENGLISH)
+                    (1..ym.lengthOfMonth()).map { ym.atDay(it) }.forEach { d ->
+                        val own = notes[d.toString()].orEmpty()
+                        val shown = own.ifBlank { com.postaltools.tr25.util.ReportHtml.autoDetails(d, all) }
+                        Row(
+                            Modifier.fillMaxWidth().clickable { noteDay = d; noteText = own }.padding(vertical = 6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Text(d.format(dn), Modifier.width(78.dp), fontWeight = FontWeight.SemiBold,
+                                color = if (d.dayOfWeek == java.time.DayOfWeek.SUNDAY) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface)
+                            Text(shown, Modifier.weight(1f), maxLines = 2, style = MaterialTheme.typography.bodyMedium,
+                                color = if (own.isBlank()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface)
+                        }
+                    }
+                }
+            }
+
             if (month.isEmpty()) Text("No journeys in ${ym.format(MONTH)}. Tap + Journey to add one.",
                 Modifier.padding(vertical = 20.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
 
@@ -231,6 +261,31 @@ fun DiaryScreen(onBack: () -> Unit, onCreateBill: (String) -> Unit) {
                 }
             }
         }
+    }
+
+    noteDay?.let { d ->
+        AlertDialog(
+            onDismissRequest = { noteDay = null },
+            title = { Text(d.format(DateTimeFormatter.ofPattern("dd-MM-yyyy, EEEE", java.util.Locale.ENGLISH))) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Field("Details / purpose of journey", noteText, { noteText = it }, singleLine = false)
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        listOf("At HQ", "Sunday Off", "Saturday Off", "Holiday", "On CL").forEach { q ->
+                            androidx.compose.material3.AssistChip(onClick = { noteText = q }, label = { Text(q, style = MaterialTheme.typography.labelSmall) })
+                        }
+                    }
+                    Text("Leave blank to use the journeys of the day.", style = MaterialTheme.typography.bodySmall)
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    notes = notes.toMutableMap().also { it[d.toString()] = noteText.trim() }
+                    app.reports.saveDays(notes); noteDay = null
+                }) { Text("Save") }
+            },
+            dismissButton = { TextButton(onClick = { noteDay = null }) { Text("Cancel") } },
+        )
     }
 
     if (confirmDelete) {

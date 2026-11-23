@@ -44,6 +44,10 @@ class SettingsStore(context: Context) {
             .apply()
     }
 
+    // ---------- free-form values (report header lines etc.) ----------
+    fun get(key: String, def: String = ""): String = prefs.getString("x_$key", def) ?: def
+    fun put(key: String, v: String) { prefs.edit().putString("x_$key", v).apply() }
+
     // ---------- PIN login (stored only as a hash) ----------
     private fun hash(x: String): String {
         val md = java.security.MessageDigest.getInstance("SHA-256")

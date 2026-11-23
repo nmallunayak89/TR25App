@@ -36,9 +36,10 @@ class PdfWriter(
     var pageNo = 0
         private set
 
-    private val regular: Typeface = Typeface.create(Typeface.SERIF, Typeface.NORMAL)
-    private val boldFace: Typeface = Typeface.create(Typeface.SERIF, Typeface.BOLD)
-    private val italicFace: Typeface = Typeface.create(Typeface.SERIF, Typeface.ITALIC)
+    // Palatino-style face (close to Book Antiqua); falls back to the phone's serif font.
+    private val regular: Typeface = Fonts.regular ?: Typeface.create(Typeface.SERIF, Typeface.NORMAL)
+    private val boldFace: Typeface = Fonts.bold ?: Typeface.create(Typeface.SERIF, Typeface.BOLD)
+    private val italicFace: Typeface = Fonts.italic ?: Typeface.create(Typeface.SERIF, Typeface.ITALIC)
 
     private val line = Paint().apply {
         color = Color.BLACK; style = Paint.Style.STROKE; strokeWidth = 0.6f; isAntiAlias = true
